@@ -59,7 +59,14 @@
   <button class="btn ghost wide" data-add="pk">+ عبوة</button>
  </section>
  <section class="card tools">
-  <button class="btn ghost" id="bReset">أرقام الملف الأصلية</button>
+  <div class="savenote">كل تعديل بيتحفظ تلقائي على الجهاز، والبرنامج بيفتح دايمًا على آخر تحديث.</div>
+  <button class="btn ghost" id="bReset">الرجوع للمدخلات الرئيسية</button>
+  <button class="btn ghost" id="bUndo" hidden>استرجاع آخر حفظ قبل الرجوع</button>
+  <button class="btn ghost" id="bPin">تثبيت الأرقام الحالية كمدخلات رئيسية</button>
+  <div class="savenote" id="pinNote"></div>
+  <button class="btn ghost" id="bExport">تصدير البيانات</button>
+  <button class="btn ghost" id="bImport">استيراد البيانات</button>
+  <input type="file" id="fImport" accept="application/json,.json" hidden>
  </section>
  <footer class="foot">يشتغل من غير نت بعد أول فتح · البيانات محفوظة على الجهاز ده بس <span id="ver"></span></footer>
 </div>
@@ -74,9 +81,10 @@
 </div>
 <div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
 <script src="core.js"></script>
+<script src="pinned.js"></script>
 <script src="app.js"></script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>
 </body>
 </html>

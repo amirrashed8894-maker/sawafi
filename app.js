@@ -1,7 +1,26 @@
-/* الصوافي — الواجهة والتقرير (v1.0.1). الحساب كله من calc() الأصلية في core.js */
-const VER='1.0.1';
+/* الصوافي — الواجهة والتقرير (v1.1.0). الحساب كله من calc() الأصلية في core.js */
+const VER='1.1.0';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
-const SK='safiNetback.v2';let S=_ld(SK,'safiNetback');migrateLines(S.lines);applyFreshDate();
+const SK='safiNetback.v2';
+/* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
+   آخر حالة بتتحفظ مع كل تغيير في SK + نسخة احتياطية SK_M، ومفيش أي رجوع للمدخلات الرئيسية لوحده أبدًا. */
+const SK_M='safiNetback.v2.mirror',SK_B='safiNetback.v2.beforeReset',SK_P='safiNetback.v2.userPinned';
+const MEM={};let STORE_OK=true;
+try{const tk='safiNetback.v2.probe';localStorage.setItem(tk,'1');localStorage.removeItem(tk)}catch(e){STORE_OK=false}
+function lsGet(k){if(STORE_OK){try{return localStorage.getItem(k)}catch(e){}}return k in MEM?MEM[k]:null}
+function lsSet(k,v){MEM[k]=v;if(!STORE_OK)return false;try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function lsDel(k){delete MEM[k];if(STORE_OK){try{localStorage.removeItem(k)}catch(e){}}}
+function okState(o){return !!(o&&typeof o==='object'&&Array.isArray(o.lines))}
+function readState(k){try{const raw=lsGet(k);if(!raw)return null;const p=JSON.parse(raw);const o=p&&p.S?p.S:p;return okState(o)?{S:o,t:p&&p.t||null}:null}catch(e){return null}}
+function fromObj(o){const d=JSON.parse(JSON.stringify(DEF));for(const k in d){if(o[k]!==undefined&&o[k]!==null&&(Array.isArray(d[k])===Array.isArray(o[k])))d[k]=o[k]}for(const k in o)if(!(k in d))d[k]=o[k];return d}
+/* المدخلات الرئيسية: اللي ثبّتها المستخدم على الجهاز ده لو موجودة، وإلا المثبّتة في pinned.js */
+function mainInputs(){const u=readState(SK_P);const s=fromObj(JSON.parse(JSON.stringify(u?u.S:PINNED)));migrateLines(s.lines);s.date=cairoISO();return s}
+let S,FRESH=false;
+(function load(){let st=readState(SK);if(!st)st=readState(SK_M);
+ if(st){S=fromObj(st.S)}
+ else{let old=null;try{const r2=lsGet('safiNetback');if(r2)old=JSON.parse(r2)}catch(e){}
+  if(okState(old))S=fromObj(old);else{S=mainInputs();FRESH=true}}
+ migrateLines(S.lines);if(!parseDateInput(S.date)&&!parseDateInput(D(S.date)))S.date=cairoISO()})();
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const N=x=>'<span class="num">'+x+'</span>';
@@ -42,13 +61,23 @@ function attachCosts(r){const src=S.lines.filter(l=>+l[2]),u=S.sar,E=S.egp,comm=
 function result(){return attachCosts(calc(S))}
 const pct=(v,b)=>b?f(v/b*100,1)+'%':'—';
 let ERR={},DR={};            // أخطاء المدخلات والنص المكتوب غلط — مفتاح منفصل (S فيها آخر قيمة صحيحة)
-const UK='safiNetback.v2.pending';try{const u=JSON.parse(localStorage.getItem(UK)||'null');if(u&&u.ERR&&u.DR){ERR=u.ERR;DR=u.DR}}catch(e){}
+const UK='safiNetback.v2.pending';try{const u=JSON.parse(lsGet(UK)||'null');if(u&&u.ERR&&u.DR){ERR=u.ERR;DR=u.DR}}catch(e){}
 delete ERR['k:cost'];delete DR['k:cost'];
 let lastT=null;
-function save(){try{lastT=Date.now();localStorage.setItem(SK,JSON.stringify({ver:2,t:lastT,S}));if(Object.keys(ERR).length)localStorage.setItem(UK,JSON.stringify({ERR,DR}));else localStorage.removeItem(UK);showSaved()}catch(e){const n=$('#ls');if(n)n.textContent='تعذّر الحفظ على الجهاز (وضع التصفح الخاص؟)'}}
-function showSaved(){const n=$('#ls');if(!n||!lastT)return;const d=new Date(lastT);n.textContent='آخر حفظ '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
-try{const p=JSON.parse(localStorage.getItem(SK)||'null');if(p&&p.t)lastT=p.t}catch(e){}
-window.addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save()});
+let saveTimer=null;
+let SAVE_FAIL=false;
+function persist(){lastT=Date.now();const j=JSON.stringify({ver:2,t:lastT,S});const a=lsSet(SK,j),b=lsSet(SK_M,j);
+ if(Object.keys(ERR).length)lsSet(UK,JSON.stringify({ERR,DR}));else lsDel(UK);SAVE_FAIL=!(a||b);showSaved()}
+/* الحفظ فوري مع كل تغيير (مش بعد مهلة) عشان لو الموبايل اتقفل أو سفاري عمل reload ميضيعش حاجة */
+function save(){if(saveTimer){clearTimeout(saveTimer);saveTimer=null}persist()}
+function flushSave(){save(true)}
+function showSaved(){const n=$('#ls');if(!n)return;if(!STORE_OK||SAVE_FAIL){n.textContent='⚠ الحفظ مؤقت — الجهاز مانع التخزين (تصفح خاص؟)';n.classList.add('warn');return}n.classList.remove('warn');if(!lastT)return;const d=new Date(lastT);n.textContent='آخر حفظ '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+try{const p=JSON.parse(lsGet(SK)||'null');if(p&&p.t)lastT=p.t}catch(e){}
+if(FRESH)persist();
+window.addEventListener('pagehide',flushSave);
+window.addEventListener('beforeunload',flushSave);
+window.addEventListener('freeze',flushSave);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushSave()});
 
 /* ---------- المدخلات ---------- */
 const FIELDS=[['sec','أسعار الصرف'],['sar','سعر الدولار بالريال','ريال / $'],['egp','سعر الدولار بالجنيه','ج / $'],
@@ -118,7 +147,7 @@ function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.t
   if(!x||x.plTon==null){e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="need">'+needCost()+'</b>';return}
   e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="'+(x.plTon<0?'neg':'')+'">'+plH(x.plTon)+' ج</b>'});
  const tot=palTotals(),lt=$('#ltTot');if(lt)lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>'}
-function renderAll(){renderChips();renderInputs();renderTables();renderLive();showSaved();$('#ver').textContent='· v'+VER}
+function renderAll(){renderChips();renderInputs();renderTables();renderLive();showSaved();renderTools();$('#ver').textContent='· v'+VER}
 
 /* ---------- الأحداث ---------- */
 function setErr(key,msg,raw){if(msg){ERR[key]=msg;DR[key]=raw}else{delete ERR[key];delete DR[key]}}
@@ -146,6 +175,16 @@ document.addEventListener('change',e=>{const t=e.target;if(t.id=='rMode'){REPMOD
  if(t.dataset.t&&t.dataset.t.endsWith(':0')){const a=t.dataset.t.split(':')[0];if(a=='clients'||a=='pk'){save();renderChips();renderTables();renderLive()}return}
  const key=t.dataset.k?'k:'+t.dataset.k:t.dataset.t;if(!key||t.tagName=='SELECT'||ERR[key])return;if(String(t.value).trim()==='')return;const x=parseNum(t.value);if(isFinite(x)&&String(x)!==t.value.trim())t.value=String(x)});
 function blocked(){const E=errList(true);if(!E.length)return false;alert('صحّح الخانات دي الأول:\n• '+E.join('\n• '));return true}
+function downloadJson(name,obj){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+function exportData(){flushSave();downloadJson('الصوافي-'+cairoISO()+'.json',{app:'sawafi',ver:2,t:lastT||Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined})}
+function extractSawafi(o){if(!o||typeof o!=='object')return null;if(o.app&&o.app!=='sawafi'&&o.app!=='safiNetback')return 'wrong-app';if(o.S&&typeof o.S==='object')return o.S;if(o.lines||o.clients||o.exp||o.sar!=null||o.egp!=null)return o;return null}
+function importSawafi(o){const raw=extractSawafi(o);if(raw==='wrong-app'){alert('الملف ده مش لبرنامج الصوافي.');return false}if(!raw||!okState(raw)){alert('الملف مش صالح أو فاضي.');return false}if(!confirm('هتستبدل البيانات الحالية بالملف اللي اخترته؟\nالأرقام الحالية هتتحفظ كنسخة «آخر حفظ قبل الرجوع» وتقدر ترجعها.'))return false;
+ flushSave();lsSet(SK_B,JSON.stringify({ver:2,t:Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined}));
+ S=fromObj(raw);migrateLines(S.lines);if(!parseDateInput(S.date)&&!parseDateInput(D(S.date)))S.date=cairoISO();ERR={};DR={};if(o.pending&&o.pending.ERR&&o.pending.DR){ERR=o.pending.ERR;DR=o.pending.DR}save();renderAll();return true}
+function onImportFile(f){if(!f)return;const r=new FileReader();r.onload=()=>{let o=null;try{o=JSON.parse(r.result)}catch(e){alert('الملف مش JSON صالح.');return}importSawafi(o);const inp=$('#fImport');if(inp)inp.value=''};r.onerror=()=>alert('ماقدرناش نقرأ الملف.');r.readAsText(f)}
+function stamp(t){if(!t)return '';const d=new Date(t);return D(cairoISO(d))+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function renderTools(){const u=$('#bUndo'),b=readState(SK_B);if(u){u.hidden=!b;if(b)u.textContent='استرجاع آخر حفظ قبل الرجوع ('+stamp(b.t)+')'}
+ const n=$('#pinNote'),p=readState(SK_P);if(n)n.textContent=p?'المدخلات الرئيسية: اللي ثبّتها على الجهاز ده يوم '+stamp(p.t):'المدخلات الرئيسية: تقرير 17/11/2026 (فاكهة الصيف، براد)'}
 function clearErrs(a){Object.keys(ERR).filter(k=>k.startsWith(a+':')).forEach(k=>{delete ERR[k];delete DR[k]})}
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
  if(t.dataset.c!=null){S.client=S.clients[+t.dataset.c][0];save();renderChips();renderLive()}
@@ -156,11 +195,22 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
   if(a=='pk'&&S.lines.some(l=>l[1]===row[0])&&!confirm('العبوة «'+row[0]+'» مستخدمة في سطور بيع، ووزنها هيتحسب صفر لو اتحذفت. تحذفها؟'))return;
   if(a=='clients'&&row[0]===S.client&&!confirm('ده العميل المختار؛ لو اتحذف العمولة هتتحسب صفر لحد ما تختار عميل تاني. تحذفه؟'))return;
   S[a].splice(+i,1);clearErrs(a);save();renderAll()}
- else if(t.id=='bReset'){if(!confirm('ترجع لأرقام الملف الأصلية؟ كل أرقامك هتتمسح.'))return;S=JSON.parse(JSON.stringify(DEF));migrateLines(S.lines);ERR={};DR={};save();renderAll()}
+ else if(t.id=='bReset'){if(!confirm('ترجع للمدخلات الرئيسية؟\nأرقامك الحالية هتتحفظ كنسخة «آخر حفظ قبل الرجوع» وتقدر ترجعها بزرار الاسترجاع.'))return;
+  flushSave();lsSet(SK_B,JSON.stringify({ver:2,t:Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined}));
+  S=mainInputs();ERR={};DR={};save();renderAll()}
+ else if(t.id=='bUndo'){const b=readState(SK_B);if(!b){alert('مفيش نسخة محفوظة قبل الرجوع.');return}
+  if(!confirm('ترجّع «آخر حفظ قبل الرجوع» ('+stamp(b.t)+')؟\nالأرقام الحالية هتتحفظ مكانها كنسخة، فمفيش حاجة هتضيع.'))return;
+  flushSave();const cur=JSON.stringify({ver:2,t:Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined});let pend=null;try{pend=JSON.parse(lsGet(SK_B)).pending||null}catch(e){}
+  lsSet(SK_B,cur);S=fromObj(b.S);migrateLines(S.lines);ERR={};DR={};if(pend&&pend.ERR&&pend.DR){ERR=pend.ERR;DR=pend.DR}save();renderAll()}
+ else if(t.id=='bPin'){if(blocked())return;if(!confirm('تثبّت الأرقام الحالية كمدخلات رئيسية على الجهاز ده؟\nزرار «الرجوع للمدخلات الرئيسية» هيرجع لها بعد كده.'))return;
+  flushSave();lsSet(SK_P,JSON.stringify({ver:2,t:Date.now(),S}));renderTools();alert('اتثبتت ✓')}
  else if(t.id=='bReport'){if(blocked())return;openRep()}
  else if(t.id=='bPrint'||t.id=='rPrint'){if(blocked())return;buildPages();$('#rep').hidden=false;fit();setTimeout(()=>window.print(),350)}
  else if(t.id=='bShare'||t.id=='rShare'){if(blocked())return;sharePdf()}
+ else if(t.id=='bExport'){exportData()}
+ else if(t.id=='bImport'){const inp=$('#fImport');if(inp)inp.click()}
  else if(t.id=='rClose'){$('#rep').hidden=true;document.body.style.overflow=''}});
+document.addEventListener('change',e=>{if(e.target&&e.target.id=='fImport'&&e.target.files&&e.target.files[0])onImportFile(e.target.files[0])});
 
 /* ---------- التقرير ---------- */
 let REPMODE='full';

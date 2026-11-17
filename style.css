@@ -188,3 +188,6 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .ln .plbox b{display:block;font-size:16px;font-weight:900;line-height:1.35}
 .ln .plbox b.need{font-size:15px;font-weight:700;color:var(--ink2)}
 .ln .plbox b.neg{font-weight:900}
+
+.ls.warn{color:#b45309;font-weight:700}
+.savenote{flex-basis:100%;font-size:12px;color:var(--mut);line-height:1.6}
