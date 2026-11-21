@@ -222,7 +222,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
  <section class="card sum" id="sum"></section>
  <div class="actions">
   <button class="btn pri" id="bReport">عرض التقرير</button>
-  <button class="btn" id="bShare">مشاركة PDF</button>
+  <button class="btn" id="bShare">PDF / واتساب</button>
   <button class="btn" id="bPrint">طباعة</button>
  </div>
  <section class="card" id="mojmal"></section>
@@ -267,7 +267,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
  <div class="repbar">
   <button class="btn" id="rClose">رجوع</button>
   <select id="rMode" class="btn sel" aria-label="نوع التقرير"><option value="full">التقرير المفصل</option><option value="m">التقرير المجمل</option></select>
-  <button class="btn pri" id="rShare">مشاركة PDF</button>
+  <button class="btn pri" id="rShare">PDF / واتساب</button>
   <button class="btn" id="rPrint">طباعة</button>
  </div>
  <div id="pages" class="pages"></div>
@@ -275,6 +275,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
 <script src="core.js"></script>
 <script src="pinned.js"></script>
+<script src="pdf-share.js"></script>
 <script src="app.js"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
