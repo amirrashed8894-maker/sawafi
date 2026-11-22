@@ -1,5 +1,5 @@
 /* الصوافي — الواجهة والتقرير (v1.2.0). الحساب كله من calc() الأصلية في core.js */
-const VER='1.2.0';
+const VER='1.3.0';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
 const SK='safiNetback.v2';
 /* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
@@ -71,8 +71,45 @@ function persist(){lastT=Date.now();const j=JSON.stringify({ver:2,t:lastT,S});co
 /* الحفظ فوري مع كل تغيير (مش بعد مهلة) عشان لو الموبايل اتقفل أو سفاري عمل reload ميضيعش حاجة */
 function save(){if(saveTimer){clearTimeout(saveTimer);saveTimer=null}persist()}
 function flushSave(){save(true)}
-function showSaved(){const n=$('#ls');if(!n)return;if(!STORE_OK||SAVE_FAIL){n.textContent='⚠ الحفظ مؤقت — الجهاز مانع التخزين (تصفح خاص؟)';n.classList.add('warn');return}n.classList.remove('warn');if(!lastT)return;const d=new Date(lastT);n.textContent='آخر حفظ '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function showSaved(){const n=$('#ls');if(!n)return;if((!STORE_OK||SAVE_FAIL)&&IDB_OK!==true){n.textContent='⚠ الحفظ مؤقت — الجهاز مانع التخزين (تصفح خاص؟)';n.classList.add('warn');return}n.classList.remove('warn');if(!lastT)return;const d=new Date(lastT);n.textContent='اتحفظ ✓ الساعة '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 try{const p=JSON.parse(lsGet(SK)||'null');if(p&&p.t)lastT=p.t}catch(e){}
+/* v1.3.0: حفظ لحظي مضاعف — كل تغيير بيتكتب فورًا في localStorage وفي IndexedDB (أثبت على الآيفون لو التاب اتقفل)،
+   ونسخة لكل يوم (حسب تاريخ الحساب) بتفضل على الموبايل 60 يوم — «📂 الأيام المحفوظة». */
+const IDBN='sawafi-store',SK_D='safiNetback.v2.days',KEEP_DAYS=60;let IDB_OK=null,idbP=null,dayT=null;
+function idbOpen(){if(idbP)return idbP;idbP=new Promise(res=>{try{const op=indexedDB.open(IDBN,1);op.onupgradeneeded=()=>{if(!op.result.objectStoreNames.contains('kv'))op.result.createObjectStore('kv')};op.onsuccess=()=>{const db=op.result;db.onversionchange=()=>{try{db.close()}catch(e){}idbP=null};db.onclose=()=>{idbP=null};res(db)};op.onerror=op.onblocked=()=>{idbP=null;res(null)}}catch(e){idbP=null;res(null)}});return idbP}
+function idbTx(fn,mode){return idbOpen().then(db=>new Promise(res=>{if(!db)return res({ok:false});let out;try{const t=db.transaction('kv',mode||'readonly');out=fn(t.objectStore('kv'));t.oncomplete=()=>res({ok:true,v:out&&out.result});t.onerror=t.onabort=()=>res({ok:false})}catch(e){idbP=null;res({ok:false,retry:true})}}))}
+function idbRun(fn,mode){return idbTx(fn,mode).then(r=>r.retry?idbTx(fn,mode):r)}
+function snap(){return JSON.stringify({ver:2,t:lastT||Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined})}
+function lsDays(){try{return JSON.parse(lsGet(SK_D)||'{}')||{}}catch(e){return {}}}
+function archiveDay(){const j=snap(),k=String(S.date||'');if(!k)return;idbRun(o=>{o.put(j,'day:'+k)},'readwrite');
+ try{const A=lsDays();A[k]={t:lastT||Date.now(),S};const lim=Date.now()-KEEP_DAYS*864e5;const B={};Object.keys(A).filter(x=>A[x]&&(A[x].t||0)>lim).sort((x,y)=>(A[y].t||0)-(A[x].t||0)).slice(0,KEEP_DAYS).forEach(x=>B[x]=A[x]);lsSet(SK_D,JSON.stringify(B))}catch(e){}}
+const _persist0=persist;
+let IDB_READY=false;
+persist=function(){_persist0();if(!IDB_READY)return;const j=snap();idbRun(o=>{o.put(j,'S')},'readwrite').then(r=>{const was=IDB_OK;IDB_OK=r.ok;if(was!==IDB_OK)showSaved()});clearTimeout(dayT);dayT=setTimeout(archiveDay,1200)};
+['pagehide','beforeunload','freeze'].forEach(ev=>window.addEventListener(ev,()=>{try{archiveDay()}catch(e){}}));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{archiveDay()}catch(e){}});
+/* Safari: اطلب إن التخزين يفضل (ومرة تانية بعد أول لمسة) */
+function keepStore(){try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}}keepStore();document.addEventListener('pointerdown',keepStore,{once:true,capture:true});
+async function savedDays(){const m={};const A=lsDays();Object.keys(A).forEach(k=>{if(A[k]&&A[k].S)m[k]={date:k,t:A[k].t||0,S:A[k].S}});
+ const r=await idbRun(o=>o.getAllKeys());const keys=(r.ok&&r.v||[]).filter(k=>String(k).startsWith('day:'));
+ if(keys.length){const g=await idbRun(o=>{const out={};keys.forEach(k=>{const q=o.get(k);q.onsuccess=()=>{out[k]=q.result}});return {result:out}});const out=(g.ok&&g.v)||{};
+  Object.keys(out).forEach(k=>{try{const p=JSON.parse(out[k]);const d=k.slice(4);if(p&&okState(p.S)&&(!m[d]||m[d].t<(p.t||0)))m[d]={date:d,t:p.t||0,S:p.S}}catch(e){}})}
+ const lim=Date.now()-KEEP_DAYS*864e5;const stale=keys.filter(k=>{const x=m[k.slice(4)];return x&&x.t<lim});if(stale.length)idbRun(o=>{stale.forEach(k=>o.delete(k))},'readwrite');
+ return Object.values(m).filter(x=>x.t>=lim&&x.date!==S.date).sort((a,b)=>b.t-a.t)}
+async function paintDays(){const b=$('#bDays');if(!b)return;const L=await savedDays().catch(()=>[]);b.hidden=!L.length;b.textContent='📂 الأيام المحفوظة ('+L.length+')'}
+async function openDays(){const L=await savedDays();const w=document.createElement('div');w.id='daysSheet';w.style.cssText='position:fixed;inset:0;background:#0007;z-index:10000;display:flex;align-items:flex-end;justify-content:center';
+ const hm=t=>{const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+ w.innerHTML='<div style="background:#fff;color:#111;width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 14px max(14px,env(safe-area-inset-bottom))"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📂 الأيام المحفوظة</b><button type="button" class="btn ghost" data-dd="x">إغلاق</button></div><div style="font-size:13px;color:#475569;margin-bottom:8px">كل تاريخ حساب محفوظ لوحده على الموبايل ده ('+KEEP_DAYS+' يوم). اللي إنت فيه دلوقتي بيفضل محفوظ برضه.</div>'+
+  (L.length?L.map(x=>'<div style="border:1px solid #e2e8f0;border-radius:12px;padding:10px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b dir="ltr">'+esc(D(x.date))+'</b> · '+esc(x.S.client||'')+' · '+esc(x.S.mode||'')+'<div style="font-size:12px;color:#64748b">آخر حفظ '+new Date(x.t).toLocaleDateString('en-GB')+' '+hm(x.t)+'</div></div><button type="button" class="btn" data-dd="'+esc(x.date)+'">افتح</button></div>').join(''):'<div style="padding:16px;text-align:center;color:#64748b">مفيش أيام تانية محفوظة</div>')+'</div>';
+ w.addEventListener('click',e=>{e.stopPropagation();const t=e.target.closest('[data-dd]');if(e.target===w||t&&t.dataset.dd==='x'){w.remove();return}if(!t)return;const x=L.find(y=>y.date===t.dataset.dd);if(!x)return;
+  flushSave();archiveDay();S=fromObj(JSON.parse(JSON.stringify(x.S)));migrateLines(S.lines);ERR={};DR={};save();renderAll();w.remove();scrollTo(0,0)});
+ document.body.appendChild(w)}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#bDays'))openDays()});
+/* عند الفتح: لو نسخة IndexedDB أحدث من localStorage (أو localStorage اتمسح) نرجّعها */
+function restoreFromIdb(){return idbRun(o=>o.get('S')).then(r=>{IDB_OK=r.ok;let p=null;try{p=r.ok&&r.v?JSON.parse(r.v):null}catch(e){}
+ IDB_READY=true;const lsT=(typeof FRESH!=='undefined'&&FRESH)?0:(lastT||0);
+ if(p&&okState(p.S)&&(p.t||0)>lsT){S=fromObj(p.S);migrateLines(S.lines);if(p.pending&&p.pending.ERR&&p.pending.DR){ERR=p.pending.ERR;DR=p.pending.DR}else{ERR={};DR={}}lastT=p.t;_persist0();renderAll();window.__restoredFromIdb=true}
+ else{const j=snap();idbRun(o=>{o.put(j,'S')},'readwrite')}showSaved();paintDays()})}
+
 if(FRESH)persist();
 window.addEventListener('pagehide',flushSave);
 window.addEventListener('beforeunload',flushSave);
@@ -269,3 +306,4 @@ function sharePdf(){/* in-app preview; «إرسال واتساب» inside it sha
  .catch(e=>{$('#busy').hidden=true;alert('ماقدرتش أجهز الـ PDF: '+(e&&e.message||e))})}
 window.SFAPP={setMode:m=>{REPMODE=m},makePdf,state:()=>S,render:renderAll,calc:()=>calc(S),result,layout,repParts,D,today,cairoISO,parseDateInput,migrateLines,syncQty,palTotals,attachCosts,lineCost,hasCost};
 renderAll();
+restoreFromIdb();

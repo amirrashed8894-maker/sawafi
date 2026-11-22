@@ -62,6 +62,7 @@
   <div class="savenote">كل تعديل بيتحفظ تلقائي على الجهاز، والبرنامج بيفتح دايمًا على آخر تحديث.</div>
   <button class="btn ghost" id="bReset">الرجوع للمدخلات الرئيسية</button>
   <button class="btn ghost" id="bUndo" hidden>استرجاع آخر حفظ قبل الرجوع</button>
+  <button class="btn ghost" id="bDays" type="button" hidden>📂 الأيام المحفوظة</button>
   <button class="btn ghost" id="bPin">تثبيت الأرقام الحالية كمدخلات رئيسية</button>
   <div class="savenote" id="pinNote"></div>
   <button class="btn ghost" id="bExport">تصدير البيانات</button>
@@ -83,7 +84,7 @@
 <script src="core.js"></script>
 <script src="pinned.js"></script>
 <script src="pdf-share.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=130"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>
