@@ -3,7 +3,7 @@
    الخانات الرئيسية (الدولار الموحّد، نولون الحاوية، سعر الخام النهارده) بتتكتب في القسم صاحبها فورًا، فالأرقام واحدة في كل مكان.
    إعدادات القرار نفسها في decision.v1 (+ نسخة .mirror + IndexedDB). الحاوية الأساسي والبراد فرعي. */
 (function(){'use strict';
-const VER2='2.1.1';const K=BE.KEYS;const FXK='fx.v1';
+const VER2='2.1.2';const K=BE.KEYS;const FXK='fx.v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fe=(x,d)=>x==null||!isFinite(x)?'—':f(x,d==null?2:d);

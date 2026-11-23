@@ -111,4 +111,4 @@ function sensitivity(safi,costs,dec,mode,items,n){const C0=ctx(safi,costs,dec,mo
 function parseCostsImport(txt){const s=String(txt||'').trim();const m=s.match(/COSTS1:([A-Za-z0-9+/=_-]+)/);let o=null;
  try{if(m){const b=m[1].replace(/-/g,'+').replace(/_/g,'/');const bin=typeof atob==='function'?atob(b):Buffer.from(b,'base64').toString('binary');o=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,ch=>ch.charCodeAt(0))))}else o=JSON.parse(s)}catch(e){return null}
  if(o&&o.app&&o.app!=='citrus-costs')return null;if(o&&o.S)o=o.S;if(!o||typeof o!=='object'||!Array.isArray(o.pk)||!Array.isArray(o.sup))return null;return costsFrom(o)}
-return {VER:'2.1.1',MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});
+return {VER:'2.1.2',MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});

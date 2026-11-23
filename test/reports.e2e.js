@@ -23,6 +23,8 @@ async function run(bt,name,opts,shots){const b=await launch(bt);const ctx=await 
   await pg.click(s.share);await pg.waitForFunction(()=>window.__lastPdf&&window.__lastPdf.size>0||document.querySelector('.pdfshare,[data-pdfshare],#pdfShare'),null,{timeout:60000}).catch(()=>{});
   const pdf=await pg.evaluate(()=>window.__lastPdf||null);assert.ok(pdf&&pdf.size>20000,k+' pdf '+JSON.stringify(pdf));
   if(k==='home')assert.ok(/^قرار_شراء_الخام_/.test(pdf.name),pdf.name);
+  // المعاينة لازم تخلص رسم بـ pdf.js (مش الـ fallback) قبل ما نسيب الصفحة
+  await pg.waitForSelector('.psx-pg',{timeout:30000});assert.strictEqual(await pg.$$eval('.psx-frame',L=>L.length),0,k+' pdf preview fell back');await pg.waitForTimeout(400);
   // الطباعة
   await pg.goto(URL+s.p);await pg.waitForSelector(s.print);await pg.evaluate(()=>{window.__printed=0;window.print=()=>{window.__printed++}});await pg.click(s.print);await pg.waitForTimeout(600);
   assert.strictEqual(await pg.evaluate(()=>window.__printed),1,k+' print called');assert.ok(await pg.$$eval('#pages .page',L=>L.length)>=1);
