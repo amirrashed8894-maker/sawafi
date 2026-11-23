@@ -255,9 +255,23 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
   <div class="tr"><span id="ls" class="ls"></span></div>
  </header>
  <section class="card be-main-in" id="hin"></section>
+ <div class="actions">
+  <button class="btn pri" id="bDecReport">تقرير القرار</button>
+  <button class="btn" id="bDecShare">PDF / واتساب</button>
+  <button class="btn" id="bDecPrint">طباعة</button>
+ </div>
  <section class="card be" id="be"></section>
  <footer class="foot">يشتغل من غير نت بعد أول فتح · البيانات محفوظة على الجهاز ده · الصوافي والتكاليف <span id="ver"></span></footer>
 </div>
+<div id="rep" class="rep" hidden>
+ <div class="repbar">
+  <button class="btn" id="rClose">رجوع</button>
+  <button class="btn pri" id="rShare">PDF / واتساب</button>
+  <button class="btn" id="rPrint">طباعة</button>
+ </div>
+ <div id="pages" class="pages"></div>
+</div>
+<div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
 <script src="nav.js?v=200"></script>
 <script src="core.js"></script>
 <script src="pinned.js"></script>
@@ -265,6 +279,8 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="sizes.js?v=2"></script>
 <script src="be-core.js?v=200"></script>
 <script src="decision.js?v=200"></script>
+<script src="pdf-share.js"></script>
+<script src="decision-report.js?v=202"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>

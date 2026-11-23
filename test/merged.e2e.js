@@ -63,7 +63,7 @@ async function fresh(bt,name,opts,shots){const b=await launch(bt);const ctx=awai
  if(shots){await pg.click('.appnav a[data-nav="safi"]');await pg.waitForSelector('#lt');await pg.locator('#app').screenshot({path:OUT+name+'-safi-full.png'});
   await pg.click('.appnav a[data-nav="costs"]');await pg.waitForSelector('#inputs');await pg.locator('#app').screenshot({path:OUT+name+'-costs-full.png'});await pg.goto(URL);await pg.waitForSelector('#be .be-main b')}
  // أوفلاين بعد تسطيب الـ service worker
- await pg.evaluate(()=>navigator.serviceWorker.ready);await pg.reload();await pg.waitForTimeout(500);await ctx.setOffline(true);
+ assert.ok(await pg.evaluate(()=>Promise.race([navigator.serviceWorker.ready.then(()=>1),new Promise(r=>setTimeout(()=>r(0),20000))])),'service worker installed');await pg.reload();await pg.waitForTimeout(500);await ctx.setOffline(true);
  for(const p of ['','safi.html','costs.html']){await pg.goto(URL+p);await pg.waitForSelector('.appnav');}
  await pg.goto(URL);await pg.waitForSelector('#be .be-main b');assert.ok(num(await kpi(pg))>0,'offline calc');await ctx.setOffline(false);
  /* أوفلاين: فحص تحديث sw.js بيفشل (طبيعي في أي متصفح من غير نت) — مش خطأ في البرنامج */
