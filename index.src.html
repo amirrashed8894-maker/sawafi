@@ -14,6 +14,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="two.css">
 </head>
 <body>
 <div id="app" class="home">
@@ -22,6 +23,7 @@
   <div class="tr"><span id="ls" class="ls"></span></div>
  </header>
  <section class="card be-main-in" id="hin"></section>
+ <section class="card two-card" id="two"><h2>القرار <small>سعر تعادل البيع وسعر تعادل شراء الخام</small></h2><div id="twoBody"></div></section>
  <div class="actions">
   <button class="btn pri" id="bDecReport">تقرير القرار</button>
   <button class="btn" id="bDecShare">PDF / واتساب</button>
@@ -44,10 +46,11 @@
 <script src="pinned.js"></script>
 <script src="exp-migrate.js?v=201"></script>
 <script src="sizes.js?v=2"></script>
-<script src="be-core.js?v=200"></script>
-<script src="decision.js?v=200"></script>
+<script src="be-core.js?v=210"></script>
+<script src="be-two.js?v=210"></script>
+<script src="decision.js?v=210"></script>
 <script src="pdf-share.js"></script>
-<script src="decision-report.js?v=202"></script>
+<script src="decision-report.js?v=210"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>

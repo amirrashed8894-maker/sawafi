@@ -55,6 +55,26 @@ function planBE(C,items,n){let T=0,A=0,Q=0,sales=0;const rows=items.map((it,i)=>
 function itemBE(C,it){return planBE(C,[it],[C.cap])}
 function priceForRaw(C,it,raw){const x=item(C,Object.assign({},it,{p:0}));if(!x.ok)return null;const T=C.cap*x.tPal;if(!(T>0))return null;
  return (raw*C.k+C.sharedE/T-x.a)/((1-C.comm)*(1000/x.w)/C.u*C.E)}
+/* خطة الباليتات لوسيلة النقل: الأساسي زي ما هو، والتاني نفس نسب الأصناف على سعته */
+function planN(dec,mode){const n=(dec.items||[]).map(it=>num(it.pal));if(mode===dec.base)return n;const tot=n.reduce((a,b)=>a+b,0),cap=num(dec.cap[mode]);return tot?n.map(v=>v*cap/tot):n}
+/* ③ التكاليف وسيناريوهات سعر البيع لصنف/عبوة: كل ريال فوق وتحت سعر الكرتونة الحالي لحد span ريال (الصنف مالي الشحنة، نفس itemBE و priceForRaw).
+   لكل سطر: سعر البيع، سعر الخام للتعادل ج/كجم، الربح/الخسارة على خام النهارده للطن وللشحنة. */
+function scenario(safi,costs,dec,mode,i,over,span){span=span==null?7:span;const C=ctx(safi,costs,dec,mode,over),it=(dec.items||[])[i];if(!it)return null;
+ const raw=num(costs.raw),x=item(C,it),p0=num(it.p);const base={ok:false,m:mode,i,v:it.v||'',sz:it.sz||'',pk:it.pk||'',p:p0,raw,span};if(!x.ok||!(C.cap>0))return base;
+ const T=C.cap*x.tPal,egy=raw*C.k-C.credit+x.pkg+C.sup+(x.wash||0),share=T>0?C.sharedE/T:0;
+ const rows=[];for(let d=-span;d<=span;d++){const p=p0+d;if(!(p>0))continue;const q=planBE(C,[Object.assign({},it,{p})],[C.cap]);const pr=q.profitAt(raw);rows.push({d,p,R:q.R,perTon:T>0?pr/T:null,perShip:pr})}
+ return Object.assign(base,{ok:true,k:C.k,rawTon:raw*C.k,credit:C.credit,pkg:x.pkg,sup:C.sup,wash:x.wash||0,egy,share,expSar:C.expSar,frSar:C.frSar,comm:C.comm,
+  total:egy+share,rev:x.rev,T,cap:C.cap,cartons:C.cap*x.cpp,minP:priceForRaw(C,it,raw),rows})}
+/* القرار في الاتجاهين (حساب واحد لكل الصفحات والتقرير):
+   ① أقل سعر بيع للكرتونة بالريال لكل صنف/عبوة على سعر الخام النهارده (الصنف مالي الشحنة، نفس priceForRaw)
+   ② أعلى سعر لشراء الخام ج/كجم على أسعار البيع (خطة الباليتات، نفس planBE) — الحاوية أساسي والبراد فرعي */
+function twoWay(safi,costs,dec,over){const raw=num(costs.raw);
+ const b0=MODES.indexOf(dec.base)>=0?dec.base:MODES[0];const modes=[b0].concat(MODES.filter(m=>m!==b0)).map(m=>{const C=ctx(safi,costs,dec,m,over),n=planN(dec,m),p=planBE(C,dec.items||[],n);
+  const items=(dec.items||[]).map((it,i)=>{const x=item(C,it);const minP=x.ok?priceForRaw(C,it,raw):null;const Ra=x.ok?itemBE(C,it).R:null;
+   return {i,v:it.v||'',sz:it.sz||'',pk:it.pk||'',p:num(it.p),ok:x.ok&&minP!=null&&isFinite(minP),minP:minP!=null&&isFinite(minP)?minP:null,gap:minP!=null&&isFinite(minP)?num(it.p)-minP:null,Ralone:Ra!=null&&isFinite(Ra)?Ra:null}});
+  const scen=(dec.items||[]).map((_,i)=>scenario(safi,costs,dec,m,i,over,7));
+  return {m,C,n,p,R:p.R!=null&&isFinite(p.R)?p.R:null,Rton:p.Rton,T:p.T,profit:p.R==null?null:p.profitAt(raw),items,scen}});
+ return {raw,modes,base:modes[0],sec:modes[1]}}
 /* سيمبلكس: أكبر c·x بشرط A·x ≤ b و x ≥ 0 و b ≥ 0 — قاعدة بلاند */
 function simplex(c,A,b){const m=A.length,n=c.length,EPS=1e-9;
  const T=A.map((r,i)=>r.concat(A.map((_,j)=>i===j?1:0),[b[i]]));const z=c.map(v=>-v).concat(new Array(m).fill(0),[0]);const basis=A.map((_,i)=>n+i);
@@ -91,4 +111,4 @@ function sensitivity(safi,costs,dec,mode,items,n){const C0=ctx(safi,costs,dec,mo
 function parseCostsImport(txt){const s=String(txt||'').trim();const m=s.match(/COSTS1:([A-Za-z0-9+/=_-]+)/);let o=null;
  try{if(m){const b=m[1].replace(/-/g,'+').replace(/_/g,'/');const bin=typeof atob==='function'?atob(b):Buffer.from(b,'base64').toString('binary');o=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,ch=>ch.charCodeAt(0))))}else o=JSON.parse(s)}catch(e){return null}
  if(o&&o.app&&o.app!=='citrus-costs')return null;if(o&&o.S)o=o.S;if(!o||typeof o!=='object'||!Array.isArray(o.pk)||!Array.isArray(o.sup))return null;return costsFrom(o)}
-return {MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});
+return {MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});

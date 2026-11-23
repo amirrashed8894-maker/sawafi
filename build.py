@@ -1,11 +1,14 @@
 # يبني index.html (القرار) و safi.html (الصوافي) و costs.html (التكاليف): الـ CSS جوه كل صفحة. الخطوط ملفات محلية يتخزّنها الـ service worker (مش data URI) عشان سفاري على الآيفون، والـ PDF يشتغل أوفلاين بعد أول فتح.
-import pathlib,re
+import pathlib,re,subprocess
 d=pathlib.Path(__file__).parent
+subprocess.run(['node',str(d/'tools'/'gen-safi-fresh.js')],check=True)
 def build(src,out,css):
     c=(d/css).read_text()
     if css=='costs.css':
         c=re.sub(r"url\(data:font[^)]*\)","url(fonts/cairo-arabic.woff2)",c)
     html=(d/src).read_text().replace('<link rel="stylesheet" href="%s">'%css,'<style>'+c+'</style>')
+    html=html.replace('<link rel="stylesheet" href="two.css">','<style>'+(d/'two.css').read_text()+'</style>')
+    assert 'href="two.css"' not in html,out
     assert '<style>' in html and 'data:font' not in html,out
     (d/out).write_text(html);print(out,len(html))
 build('index.src.html','index.html','style.css')

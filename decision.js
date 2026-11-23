@@ -3,7 +3,7 @@
    الخانات الرئيسية (الدولار الموحّد، نولون الحاوية، سعر الخام النهارده) بتتكتب في القسم صاحبها فورًا، فالأرقام واحدة في كل مكان.
    إعدادات القرار نفسها في decision.v1 (+ نسخة .mirror + IndexedDB). الحاوية الأساسي والبراد فرعي. */
 (function(){'use strict';
-const VER2='2.0.2';const K=BE.KEYS;const FXK='fx.v1';
+const VER2='2.1.0';const K=BE.KEYS;const FXK='fx.v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fe=(x,d)=>x==null||!isFinite(x)?'—':f(x,d==null?2:d);
@@ -76,13 +76,14 @@ function render(){load();renderInputs();const R=DEC;
  $('#ver').textContent='· v'+VER2;showSaved();live()}
 function get(path){const a=path.split('.');let o=DEC;for(const k of a){if(o==null)return null;o=o[k]}return o}
 function set(path,v){const a=path.split('.');let o=DEC;for(let i=0;i<a.length-1;i++)o=o[a[i]];o[a[a.length-1]]=v}
-function planFor(mode){const n=DEC.items.map(it=>+it.pal||0);if(mode===DEC.base)return n;const tot=n.reduce((a,b)=>a+b,0),cap=+DEC.cap[mode]||0;return tot?n.map(v=>v*cap/tot):n}
+function planFor(mode){return BE.planN(DEC,mode)}
 const plTxt=v=>v==null||!isFinite(v)?'—':(v>=0?'ربح ':'خسارة ')+'<span class="num">'+f(Math.abs(v))+'</span>';
 function live(){const S=SAFI.S,Cs=COSTS.S,base=DEC.base,oth=OTHER(base);
  const Cb=BE.ctx(S,Cs,DEC,base),Co=BE.ctx(S,Cs,DEC,oth);const nb=planFor(base),no=planFor(oth);const pb=BE.planBE(Cb,DEC.items,nb),po=BE.planBE(Co,DEC.items,no);const raw=+Cs.raw||0;
  const verdict=p=>p.R==null?'':p.R<=0?'<em class="bad2">مفيش سعر خام يعادل — الصافي أقل من التكاليف حتى لو الخام ببلاش</em>':raw<=p.R?'<em class="ok2">✓ الشراء بـ <span class="num">'+f(raw)+'</span> ج مربح — هامش <span class="num">'+f(p.R-raw)+'</span> ج/كجم</em>':'<em class="bad2">✗ سعر النهارده <span class="num">'+f(raw)+'</span> ج أعلى من التعادل بـ <span class="num">'+f(raw-p.R)+'</span> ج/كجم</em>';
  const kp=(p,m,main)=>'<div class="kpi'+(main?' wide be-main':'')+(p.R!=null&&p.R<raw?' neg':'')+'"><span>'+(main?'اشتري الخام لحد — ':'')+modeName(m)+(main?'':' (فرعي)')+'</span><b>'+(p.R==null?'—':'<span class="num">'+f(p.R)+'</span> ج/كجم')+'</b><em>'+(p.R==null?'اكتب الأصناف والباليتات':'= <span class="num">'+f(p.Rton,0)+'</span> ج لطن الخام · <span class="num">'+f(p.T,2)+'</span> طن صافي')+'</em>'+(main?verdict(p):'')+
   (p.R!=null?'<em class="sm2">على خام <span class="num">'+f(raw)+'</span> ج/كجم: '+plTxt(p.profitAt(raw)/p.T)+' ج/طن · الشحنة '+plTxt(p.profitAt(raw))+' ج</em>':'')+'</div>';
+ const tb=$('#twoBody');if(tb)tb.innerHTML=BETwo.html(BE.twoWay(S,Cs,DEC));
  $('#beKpi').innerHTML='<div class="kpis">'+kp(pb,base,true)+kp(po,oth,false)+'<div class="kpi"><span>الفرق '+modeName(base)+' − '+modeName(oth)+'</span><b>'+(pb.R!=null&&po.R!=null?'<span class="num">'+f(pb.R-po.R)+'</span> ج/كجم':'—')+'</b><em>'+(pb.R!=null&&po.R!=null?(pb.R>=po.R?modeName(base)+' أحسن':modeName(oth)+' أحسن'):'')+'</em></div></div>';
  const w=[];const tot=nb.reduce((a,b)=>a+b,0);
  if(Cb.frMissing||Co.frMissing)w.push('⚠ نولون '+[Cb,Co].filter(c=>c.frMissing).map(c=>modeName(c.mode)).join(' و')+' مش متدخل — التعادل محسوب من غير نولون');
