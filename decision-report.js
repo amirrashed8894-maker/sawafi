@@ -12,9 +12,9 @@ const pl=v=>v==null||!isFinite(v)?'—':(v>=0?'ربح ':'خسارة ')+'<span cl
 const modeName=m=>m==='حاوية'?'الحاوية':'البراد';
 const CODE='RT-20261123-021';
 function data(){const st=DECAPP.state(),S=st.safi,Cs=st.costs,dec=st.dec,BE=DECAPP.BE;const raw=+Cs.raw||0;
- const plan=m=>BE.planN(dec,m);
+ const plan=m=>typeof BE.planN==='function'?BE.planN(dec,m):DECAPP.planFor(m);
  const modes=[dec.base,dec.base==='حاوية'?'براد':'حاوية'].map(m=>{const C=BE.ctx(S,Cs,dec,m),n=plan(m),p=BE.planBE(C,dec.items,n),o=BE.optimize(C,dec.items);return {m,C,n,p,o,sens:BE.sensitivity(S,Cs,dec,m,dec.items,n)}});
- const tw=BE.twoWay(S,Cs,dec);
+ let tw=null;try{tw=typeof BE.twoWay==='function'?BE.twoWay(S,Cs,dec):null}catch(e){tw=null}
  return {S,Cs,dec,BE,raw,modes,tw}}
 function parts(){const d=data(),S=d.S,Cs=d.Cs,dec=d.dec,raw=d.raw,[A,B]=d.modes,u=S.sar,E=S.egp;
  const head=t=>'<div class="ph"><div><h1>'+t+'</h1><div class="meta">التاريخ <span class="ltr">'+today()+'</span> — العميل '+esc(S.client)+' (عمولة <span class="ltr">'+f(A.C.comm*100,1)+'%</span>) — الأساسي '+modeName(dec.base)+' — الدولار <span class="ltr">'+f(E)+'</span> ج — <span class="ltr">'+f(u,4)+'</span> ريال</div></div><span class="tag">قرار شراء الخام</span></div>';
@@ -24,7 +24,7 @@ function parts(){const d=data(),S=d.S,Cs=d.Cs,dec=d.dec,raw=d.raw,[A,B]=d.modes,
   '<div class="m"><span>'+modeName(B.m)+' (فرعي)</span><b>'+F(B.p.R)+' ج/كجم</b><em>'+F(B.p.Rton,0)+' ج لطن الخام</em><small>الفرق '+F(A.p.R!=null&&B.p.R!=null?A.p.R-B.p.R:null)+' ج/كجم</small></div>'+
   '<div class="m"><span>سعر الخام النهارده</span><b>'+F(raw)+' ج/كجم</b><em>واصل المحطة</em><small>من التكاليف</small></div>'+
   '<div class="m'+(A.p.profitAt(raw)<0?' neg':'')+'"><span>الربح على سعر النهارده — '+modeName(A.m)+'</span><b>'+pl(A.p.profitAt(raw))+' ج</b><em>'+pl(A.p.T?A.p.profitAt(raw)/A.p.T:null)+' ج/طن</em><small>'+F(A.p.T,3)+' طن صافي</small></div></div>'+
-  (()=>{const tw=d.tw,X=tw.base,Y=tw.sec;
+  (()=>{if(!d.tw)return '';const tw=d.tw,X=tw.base,Y=tw.sec;
   const r1=X.items.map((x,i)=>{const y=Y.items[i];return '<tr><td>'+esc([x.v,x.sz].filter(Boolean).join(' '))+'</td><td>'+esc(x.pk)+'</td><td class="n">'+fn(x.p)+'</td><td class="n"><b>'+fn(x.minP)+'</b></td><td class="n">'+fn(y.minP)+'</td><td class="n">'+(x.gap==null||!(x.p>0)?'—':(x.gap>=0?'+':'')+fn(x.gap))+'</td></tr>'}).join('')||'<tr><td colspan="6">مفيش أصناف.</td></tr>';
   const r2=[X,Y].map((m,j)=>'<tr'+(j?'':' class="gt"')+'><td>'+modeName(m.m)+(j?' (فرعي)':' (أساسي)')+'</td><td class="n">'+fn(m.R)+'</td><td class="n">'+fn(m.Rton,0)+'</td><td class="n">'+fn(raw)+'</td><td class="n">'+(m.R==null?'—':(m.R-raw>=0?'+':'')+fn(m.R-raw))+'</td><td class="n">'+pl(m.profit)+'</td></tr>').join('');
   return '<h3>① سعر تعادل البيع — أقل سعر بيع للكرتونة بالريال على خام '+fn(raw)+' ج/كجم</h3><table class="rt"><thead><tr><th>الصنف</th><th>العبوة</th><th>سعرك (ريال)</th><th>أقل سعر — '+modeName(X.m)+'</th><th>أقل سعر — '+modeName(Y.m)+'</th><th>الفرق ('+modeName(X.m)+')</th></tr></thead><tbody>'+r1+'</tbody></table>'+
@@ -37,7 +37,7 @@ function parts(){const d=data(),S=d.S,Cs=d.Cs,dec=d.dec,raw=d.raw,[A,B]=d.modes,
    .map(r=>'<tr'+(r[2]?' class="gt"':'')+'><td>'+r[0]+'</td><td class="n">'+r[1](A)+'</td><td class="n">'+r[1](B)+'</td></tr>').join('')+'</tbody></table>'+
   '<div class="note">سعر الخام للتعادل = أعلى سعر خام ج/كجم واصل المحطة يخلّي ربح الشحنة صفر. '+modeName(B.m)+' محسوب بنفس نسب الأصناف على سعته.'+(A.C.frMissing?' تنبيه: نولون '+modeName(A.m)+' مش متدخل.':'')+'</div>';
  const blocks=[CMP];
- (()=>{const X=d.tw.base,Y=d.tw.sec;const sg=v=>v==null||!isFinite(v)?'—':(v>=0?'+':'−')+fn(Math.abs(v),0);
+ (()=>{if(!d.tw)return;const X=d.tw.base,Y=d.tw.sec;const sg=v=>v==null||!isFinite(v)?'—':(v>=0?'+':'−')+fn(Math.abs(v),0);
   const lab=s=>esc([[s.v,s.sz].filter(Boolean).join(' '),s.pk].filter(Boolean).join(' · '));
   const cols=[];X.scen.forEach((s,i)=>{cols.push([s,modeName(X.m)]);cols.push([Y.scen[i],modeName(Y.m)])});
   const okc=cols.filter(c=>c[0]&&c[0].ok);if(!okc.length)return;

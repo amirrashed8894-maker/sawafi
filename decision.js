@@ -3,7 +3,7 @@
    الخانات الرئيسية (الدولار الموحّد، نولون الحاوية، سعر الخام النهارده) بتتكتب في القسم صاحبها فورًا، فالأرقام واحدة في كل مكان.
    إعدادات القرار نفسها في decision.v1 (+ نسخة .mirror + IndexedDB). الحاوية الأساسي والبراد فرعي. */
 (function(){'use strict';
-const VER2='2.1.0';const K=BE.KEYS;const FXK='fx.v1';
+const VER2='2.1.1';const K=BE.KEYS;const FXK='fx.v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fe=(x,d)=>x==null||!isFinite(x)?'—':f(x,d==null?2:d);
@@ -41,6 +41,13 @@ function syncFx(){const sf=readSafi(),cs=readCosts();const s=+sf.S.egp,c=+cs.S.u
 function setFx(v){writeSafi(S=>{S.egp=v});writeCosts(S=>{S.usd=v});lsSet(FXK,JSON.stringify({v,safi:v,costs:v,t:Date.now()}))}
 /* مرة واحدة: نولون الحاوية في الصوافي كان صفر (مش متدخل) ← 2,800$ من أمير 23/11/2026 */
 function migrateOnce(){if(lsGet('decision.migr.fc2800'))return;const sf=readSafi();if(sf.src!=='fresh'&&!(+sf.S.fC>0)){writeSafi(S=>{S.fC=BE.ASSUME.fC});NOTE='نولون الحاوية كان مش متدخل في الصوافي، فاتكتب 2,800$ (رقمك الحالي) — تقدر تغيّره من هنا.'}lsSet('decision.migr.fc2800','1')}
+/* v2.1.1: لو الملفات المتخزّنة على الجهاز متلخبطة (نسخة قديمة من be-core.js مع decision.js جديد — من الـ CDN وقت التحديث)
+   نمسح الكاش مرة واحدة ونحدّث الـ service worker ونعيد التحميل. البيانات (localStorage/IndexedDB) ما بتتلمسش. */
+(function selfHeal(){const ok=typeof BE.twoWay==='function'&&typeof BE.planN==='function'&&BE.VER===VER2&&typeof window.BETwo==='object';if(ok){try{sessionStorage.removeItem('dec.heal')}catch(e){}return}
+ let n=0;try{n=+sessionStorage.getItem('dec.heal')||0}catch(e){}if(n>=2)return;try{sessionStorage.setItem('dec.heal',String(n+1))}catch(e){}
+ const done=()=>location.reload();const sw=navigator.serviceWorker;
+ Promise.resolve().then(()=>window.caches?caches.keys().then(k=>Promise.all(k.filter(x=>x.indexOf('sawafi-')===0).map(x=>caches.delete(x)))):0)
+  .then(()=>sw&&sw.getRegistration?sw.getRegistration().then(r=>r&&r.update&&r.update().catch(()=>{})):0).catch(()=>{}).then(()=>setTimeout(done,300))})();
 let DEC=readDec().S,SAFI=null,COSTS=null,NOTE='';
 try{const u=BE.unwrap(lsGet(K.dec));if(u&&u.t)lastT=u.t}catch(e){}
 function load(){SAFI=readSafi();COSTS=readCosts();const d=readDec();DEC=d.S}
@@ -76,7 +83,7 @@ function render(){load();renderInputs();const R=DEC;
  $('#ver').textContent='· v'+VER2;showSaved();live()}
 function get(path){const a=path.split('.');let o=DEC;for(const k of a){if(o==null)return null;o=o[k]}return o}
 function set(path,v){const a=path.split('.');let o=DEC;for(let i=0;i<a.length-1;i++)o=o[a[i]];o[a[a.length-1]]=v}
-function planFor(mode){return BE.planN(DEC,mode)}
+function planFor(mode){if(typeof BE.planN==='function')return BE.planN(DEC,mode);const n=DEC.items.map(it=>+it.pal||0);if(mode===DEC.base)return n;const tot=n.reduce((a,b)=>a+b,0),cap=+DEC.cap[mode]||0;return tot?n.map(v=>v*cap/tot):n}
 const plTxt=v=>v==null||!isFinite(v)?'—':(v>=0?'ربح ':'خسارة ')+'<span class="num">'+f(Math.abs(v))+'</span>';
 function live(){const S=SAFI.S,Cs=COSTS.S,base=DEC.base,oth=OTHER(base);
  const Cb=BE.ctx(S,Cs,DEC,base),Co=BE.ctx(S,Cs,DEC,oth);const nb=planFor(base),no=planFor(oth);const pb=BE.planBE(Cb,DEC.items,nb),po=BE.planBE(Co,DEC.items,no);const raw=+Cs.raw||0;
@@ -152,5 +159,5 @@ function restoreIdb(){Promise.all([idbGet('dec'),idbGet('S')]).then(([d,s])=>{le
  const us=BE.unwrap(s),cs=BE.unwrap(lsGet(K.safi))||BE.unwrap(lsGet(K.safiM));if(us&&okSafi(us.S)&&!cs){lsSet(K.safi,s);lsSet(K.safiM,s);ch=true}
  if(ch){syncFx();render()}})}
 migrateOnce();syncFx();if(readDec().fresh)saveDec();render();restoreIdb();
-window.DECAPP={render,live,state:()=>({safi:SAFI.S,costs:COSTS.S,dec:DEC}),BE};
+window.DECAPP={render,live,planFor,state:()=>({safi:SAFI.S,costs:COSTS.S,dec:DEC}),BE};
 })();
