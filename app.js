@@ -1,5 +1,5 @@
 /* الصوافي — الواجهة والتقرير (v1.2.0). الحساب كله من calc() الأصلية في core.js */
-const VER='2.0.0';
+const VER='2.0.1';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
 const SK='safiNetback.v2';
 /* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
@@ -14,12 +14,12 @@ function okState(o){return !!(o&&typeof o==='object'&&Array.isArray(o.lines))}
 function readState(k){try{const raw=lsGet(k);if(!raw)return null;const p=JSON.parse(raw);const o=p&&p.S?p.S:p;return okState(o)?{S:o,t:p&&p.t||null}:null}catch(e){return null}}
 function fromObj(o){const d=JSON.parse(JSON.stringify(DEF));for(const k in d){if(o[k]!==undefined&&o[k]!==null&&(Array.isArray(d[k])===Array.isArray(o[k])))d[k]=o[k]}for(const k in o)if(!(k in d))d[k]=o[k];return d}
 /* المدخلات الرئيسية: اللي ثبّتها المستخدم على الجهاز ده لو موجودة، وإلا المثبّتة في pinned.js */
-function mainInputs(){const u=readState(SK_P);const s=fromObj(JSON.parse(JSON.stringify(u?u.S:PINNED)));migrateLines(s.lines);s.date=cairoISO();return s}
-let S,FRESH=false;
+function mainInputs(){const u=readState(SK_P);const s=fromObj(JSON.parse(JSON.stringify(u?u.S:PINNED)));migrateLines(s.lines);ExpMig.migrateExp(s);s.date=cairoISO();return s}
+let S,FRESH=false,EXPMIG=false;
 (function load(){let st=readState(SK);if(!st)st=readState(SK_M);
- if(st){S=fromObj(st.S)}
+ if(st){S=fromObj(st.S);if(ExpMig.migrateExp(S))EXPMIG=true}
  else{let old=null;try{const r2=lsGet('safiNetback');if(r2)old=JSON.parse(r2)}catch(e){}
-  if(okState(old))S=fromObj(old);else{S=mainInputs();FRESH=true}}
+  if(okState(old)){S=fromObj(old);if(ExpMig.migrateExp(S))EXPMIG=true}else{S=mainInputs();FRESH=true}}
  migrateLines(S.lines);if(!parseDateInput(S.date)&&!parseDateInput(D(S.date)))S.date=cairoISO()})();
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -101,16 +101,16 @@ async function openDays(){const L=await savedDays();const w=document.createEleme
  w.innerHTML='<div style="background:#fff;color:#111;width:100%;max-width:520px;max-height:80vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 14px max(14px,env(safe-area-inset-bottom))"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:17px">📂 الأيام المحفوظة</b><button type="button" class="btn ghost" data-dd="x">إغلاق</button></div><div style="font-size:13px;color:#475569;margin-bottom:8px">كل تاريخ حساب محفوظ لوحده على الموبايل ده ('+KEEP_DAYS+' يوم). اللي إنت فيه دلوقتي بيفضل محفوظ برضه.</div>'+
   (L.length?L.map(x=>'<div style="border:1px solid #e2e8f0;border-radius:12px;padding:10px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b dir="ltr">'+esc(D(x.date))+'</b> · '+esc(x.S.client||'')+' · '+esc(x.S.mode||'')+'<div style="font-size:12px;color:#64748b">آخر حفظ '+new Date(x.t).toLocaleDateString('en-GB')+' '+hm(x.t)+'</div></div><button type="button" class="btn" data-dd="'+esc(x.date)+'">افتح</button></div>').join(''):'<div style="padding:16px;text-align:center;color:#64748b">مفيش أيام تانية محفوظة</div>')+'</div>';
  w.addEventListener('click',e=>{e.stopPropagation();const t=e.target.closest('[data-dd]');if(e.target===w||t&&t.dataset.dd==='x'){w.remove();return}if(!t)return;const x=L.find(y=>y.date===t.dataset.dd);if(!x)return;
-  flushSave();archiveDay();S=fromObj(JSON.parse(JSON.stringify(x.S)));migrateLines(S.lines);ERR={};DR={};save();renderAll();w.remove();scrollTo(0,0)});
+  flushSave();archiveDay();S=ExpMig.keepExp(fromObj(JSON.parse(JSON.stringify(x.S))));migrateLines(S.lines);ERR={};DR={};save();renderAll();w.remove();scrollTo(0,0)});
  document.body.appendChild(w)}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#bDays'))openDays()});
 /* عند الفتح: لو نسخة IndexedDB أحدث من localStorage (أو localStorage اتمسح) نرجّعها */
 function restoreFromIdb(){return idbRun(o=>o.get('S')).then(r=>{IDB_OK=r.ok;let p=null;try{p=r.ok&&r.v?JSON.parse(r.v):null}catch(e){}
  IDB_READY=true;const lsT=(typeof FRESH!=='undefined'&&FRESH)?0:(lastT||0);
- if(p&&okState(p.S)&&(p.t||0)>lsT){S=fromObj(p.S);migrateLines(S.lines);if(p.pending&&p.pending.ERR&&p.pending.DR){ERR=p.pending.ERR;DR=p.pending.DR}else{ERR={};DR={}}lastT=p.t;_persist0();renderAll();window.__restoredFromIdb=true}
+ if(p&&okState(p.S)&&(p.t||0)>lsT){S=fromObj(p.S);ExpMig.migrateExp(S);migrateLines(S.lines);if(p.pending&&p.pending.ERR&&p.pending.DR){ERR=p.pending.ERR;DR=p.pending.DR}else{ERR={};DR={}}lastT=p.t;_persist0();renderAll();window.__restoredFromIdb=true}
  else{const j=snap();idbRun(o=>{o.put(j,'S')},'readwrite')}showSaved();paintDays()})}
 
-if(FRESH)persist();
+if(FRESH||EXPMIG)persist();
 window.addEventListener('pagehide',flushSave);
 window.addEventListener('beforeunload',flushSave);
 window.addEventListener('freeze',flushSave);
@@ -272,7 +272,7 @@ function exportData(){flushSave();downloadJson('الصوافي-'+cairoISO()+'.js
 function extractSawafi(o){if(!o||typeof o!=='object')return null;if(o.app&&o.app!=='sawafi'&&o.app!=='safiNetback')return 'wrong-app';if(o.S&&typeof o.S==='object')return o.S;if(o.lines||o.clients||o.exp||o.sar!=null||o.egp!=null)return o;return null}
 function importSawafi(o){const raw=extractSawafi(o);if(raw==='wrong-app'){alert('الملف ده مش لبرنامج الصوافي.');return false}if(!raw||!okState(raw)){alert('الملف مش صالح أو فاضي.');return false}if(!confirm('هتستبدل البيانات الحالية بالملف اللي اخترته؟\nالأرقام الحالية هتتحفظ كنسخة «آخر حفظ قبل الرجوع» وتقدر ترجعها.'))return false;
  flushSave();lsSet(SK_B,JSON.stringify({ver:2,t:Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined}));
- S=fromObj(raw);migrateLines(S.lines);if(!parseDateInput(S.date)&&!parseDateInput(D(S.date)))S.date=cairoISO();ERR={};DR={};if(o.pending&&o.pending.ERR&&o.pending.DR){ERR=o.pending.ERR;DR=o.pending.DR}save();renderAll();return true}
+ S=ExpMig.keepExp(fromObj(raw));migrateLines(S.lines);if(!parseDateInput(S.date)&&!parseDateInput(D(S.date)))S.date=cairoISO();ERR={};DR={};if(o.pending&&o.pending.ERR&&o.pending.DR){ERR=o.pending.ERR;DR=o.pending.DR}save();renderAll();return true}
 function onImportFile(f){if(!f)return;const r=new FileReader();r.onload=()=>{let o=null;try{o=JSON.parse(r.result)}catch(e){alert('الملف مش JSON صالح.');return}importSawafi(o);const inp=$('#fImport');if(inp)inp.value=''};r.onerror=()=>alert('ماقدرناش نقرأ الملف.');r.readAsText(f)}
 function stamp(t){if(!t)return '';const d=new Date(t);return D(cairoISO(d))+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function renderTools(){const u=$('#bUndo'),b=readState(SK_B);if(u){u.hidden=!b;if(b)u.textContent='استرجاع آخر حفظ قبل الرجوع ('+stamp(b.t)+')'}
@@ -295,7 +295,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
  else if(t.id=='bUndo'){const b=readState(SK_B);if(!b){alert('مفيش نسخة محفوظة قبل الرجوع.');return}
   if(!confirm('ترجّع «آخر حفظ قبل الرجوع» ('+stamp(b.t)+')؟\nالأرقام الحالية هتتحفظ مكانها كنسخة، فمفيش حاجة هتضيع.'))return;
   flushSave();const cur=JSON.stringify({ver:2,t:Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined});let pend=null;try{pend=JSON.parse(lsGet(SK_B)).pending||null}catch(e){}
-  lsSet(SK_B,cur);S=fromObj(b.S);migrateLines(S.lines);ERR={};DR={};if(pend&&pend.ERR&&pend.DR){ERR=pend.ERR;DR=pend.DR}save();renderAll()}
+  lsSet(SK_B,cur);S=ExpMig.keepExp(fromObj(b.S));migrateLines(S.lines);ERR={};DR={};if(pend&&pend.ERR&&pend.DR){ERR=pend.ERR;DR=pend.DR}save();renderAll()}
  else if(t.id=='bPin'){if(blocked())return;if(!confirm('تثبّت الأرقام الحالية كمدخلات رئيسية على الجهاز ده؟\nزرار «الرجوع للمدخلات الرئيسية» هيرجع لها بعد كده.'))return;
   flushSave();lsSet(SK_P,JSON.stringify({ver:2,t:Date.now(),S}));renderTools();alert('اتثبتت ✓')}
  else if(t.id=='bReport'){if(blocked())return;openRep()}

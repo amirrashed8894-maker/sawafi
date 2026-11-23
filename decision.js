@@ -3,7 +3,7 @@
    الخانات الرئيسية (الدولار الموحّد، نولون الحاوية، سعر الخام النهارده) بتتكتب في القسم صاحبها فورًا، فالأرقام واحدة في كل مكان.
    إعدادات القرار نفسها في decision.v1 (+ نسخة .mirror + IndexedDB). الحاوية الأساسي والبراد فرعي. */
 (function(){'use strict';
-const VER2='2.0.0';const K=BE.KEYS;const FXK='fx.v1';
+const VER2='2.0.1';const K=BE.KEYS;const FXK='fx.v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fe=(x,d)=>x==null||!isFinite(x)?'—':f(x,d==null?2:d);
@@ -21,9 +21,9 @@ function idbGet(k){return idb().then(db=>new Promise(r=>{if(!db)return r(null);t
 function safiFromObj(o){const d=JSON.parse(JSON.stringify(DEF));for(const k in d){if(o[k]!==undefined&&o[k]!==null&&(Array.isArray(d[k])===Array.isArray(o[k])))d[k]=o[k]}for(const k in o)if(!(k in d))d[k]=o[k];return d}
 function okSafi(o){return !!(o&&typeof o==='object'&&Array.isArray(o.lines))}
 /* الصوافي: نفس ترتيب القراءة في قسم الصوافي (الأساسي ← النسخة ← القديم ← المدخلات الرئيسية) */
-function readSafi(){for(const k of [K.safi,K.safiM]){const u=BE.unwrap(lsGet(k));if(u&&okSafi(u.S))return {S:safiFromObj(u.S),t:u.t,src:'saved'}}
- const old=BE.unwrap(lsGet('safiNetback'));if(old&&okSafi(old.S))return {S:safiFromObj(old.S),t:0,src:'old'};
- let base=PINNED;const up=BE.unwrap(lsGet('safiNetback.v2.userPinned'));if(up&&okSafi(up.S))base=up.S;const s=safiFromObj(JSON.parse(JSON.stringify(base)));s.date=cairoISO();return {S:s,t:0,src:'fresh'}}
+function readSafi(){for(const k of [K.safi,K.safiM]){const u=BE.unwrap(lsGet(k));if(u&&okSafi(u.S)){const s=safiFromObj(u.S);ExpMig.migrateExp(s);return {S:s,t:u.t,src:'saved'}}}
+ const old=BE.unwrap(lsGet('safiNetback'));if(old&&okSafi(old.S)){const s=safiFromObj(old.S);ExpMig.migrateExp(s);return {S:s,t:0,src:'old'}}
+ let base=PINNED;const up=BE.unwrap(lsGet('safiNetback.v2.userPinned'));if(up&&okSafi(up.S))base=up.S;const s=safiFromObj(JSON.parse(JSON.stringify(base)));ExpMig.migrateExp(s);s.date=cairoISO();return {S:s,t:0,src:'fresh'}}
 function readCosts(){for(const k of [K.costs,K.costsOld]){const u=BE.unwrap(lsGet(k));if(u)return {S:BE.costsFrom(u.S),t:u.t,src:k===K.costs?'saved':'old'}}const s=BE.costsFrom(null);s.date=cairoISO();return {S:s,t:0,src:'fresh'}}
 function readDec(){for(const k of [K.dec,K.decM]){const u=BE.unwrap(lsGet(k));if(u)return {S:BE.decFrom(u.S),t:u.t}}return {S:BE.decFrom(null),t:0,fresh:true}}
 let lastT=null,SAVE_FAIL=false;

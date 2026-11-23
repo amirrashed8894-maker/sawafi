@@ -43,4 +43,23 @@ t('استيراد التكاليف القديمة: JSON و COSTS1 ورفض ال�
  assert.strictEqual(BE.parseCostsImport(JSON.stringify({app:'sawafi',S})),null);assert.strictEqual(BE.parseCostsImport('كلام'),null)});
 t('الغسيل حسب الصنف',()=>{const c=BE.costsFrom(null);assert.strictEqual(BE.washOf(c,'أبو سرة'),2500);assert.strictEqual(BE.washOf(c,'صيفي'),1800);assert.strictEqual(BE.washOf(c,'كلمنتينا'),1800);assert.strictEqual(BE.washOf(c,''),null)});
 t('decFrom يقبل حفظ ناقص',()=>{const d=BE.decFrom({cap:{'حاوية':20},items:[]});assert.strictEqual(d.cap['براد'],23);assert.strictEqual(d.cap['حاوية'],20);assert.strictEqual(d.base,'حاوية')});
+
+const MIG=require('../exp-migrate.js');
+const sumC=e=>e.reduce((a,x)=>a+(+x[2]||0),0),sumB=e=>e.reduce((a,x)=>a+(+x[1]||0),0);
+t('مصروفات الحاوية الجديدة في الإدخالات الجديدة: 6,500 + 2,000 = 8,500 والبراد 6,500 + 15,000',()=>{const C=BE.ctx(PINNED,BE.costsFrom(null),dec(),'حاوية');assert.strictEqual(C.expSar,8500);assert.strictEqual(PINNED.fC,2800);
+ assert.deepStrictEqual(J(PINNED.exp.filter(r=>+r[2])),[['تخليص ونقل من الميناء',0,6500],['دخولية',0,2000]]);const B=BE.ctx(PINNED,BE.costsFrom(null),dec(),'براد');assert.strictEqual(B.expSar,6500);assert.strictEqual(PINNED.fB,15000);assert.strictEqual(PINNED.expV,2)});
+function oldPinnedExp(){return [['مصروفات البراد في السعودية (إجمالي)',6500,0]].concat(J(SAW.DEF.exp).map(e=>[e[0],0,e[2]]))}
+t('ترحيل: البنود القديمة بالظبط (نسخة 17/11) ← البندين الجداد، والبراد زي ما هو',()=>{const s={exp:oldPinnedExp()};assert.strictEqual(sumC(s.exp),13886);const b0=sumB(s.exp);
+ assert.strictEqual(MIG.migrateExp(s),true);assert.strictEqual(sumC(s.exp),8500);assert.strictEqual(sumB(s.exp),b0);assert.strictEqual(s.expV,2);
+ assert.deepStrictEqual(J(s.exp),[['مصروفات البراد في السعودية (إجمالي)',6500,0],['تخليص ونقل من الميناء',0,6500],['دخولية',0,2000],['مصاريف أخرى',0,0]]);
+ assert.strictEqual(MIG.migrateExp(s),false,'مرة واحدة');assert.strictEqual(sumC(s.exp),8500)});
+t('ترحيل: DEF الأصلي (بنود ليها قيم براد) — البراد مايتلمسش',()=>{const s={exp:J(SAW.DEF.exp)};const b0=J(s.exp).map(r=>[r[0],r[1]]).filter(r=>+r[1]);
+ assert.strictEqual(MIG.migrateExp(s),true);assert.strictEqual(sumC(s.exp),8500);assert.deepStrictEqual(J(s.exp).filter(r=>+r[1]).map(r=>[r[0],r[1]]),b0);assert.strictEqual(sumB(s.exp),sumB(SAW.DEF.exp))});
+t('ترحيل: أي رقم معدّل أو بند زيادة ← مايتغيرش حاجة',()=>{for(const mod of [e=>{e[7][2]=5000},e=>{e.push(['بند جديد',0,100])},e=>{e[1][0]='موقف'},e=>{e.splice(3,1)},e=>{e.push(['تخليص',0,5076])}]){const e=oldPinnedExp();mod(e);const s={exp:J(e)};
+  assert.strictEqual(MIG.migrateExp(s),false);assert.deepStrictEqual(J(s.exp),J(e));assert.strictEqual(s.expV,2)}});
+t('ترحيل: التقرير القديم اللي بيتفتح (يوم محفوظ/ملف) بيتعلّم من غير تغيير',()=>{const s={exp:oldPinnedExp()};MIG.keepExp(s);assert.strictEqual(MIG.migrateExp(s),false);assert.strictEqual(sumC(s.exp),13886)});
+t('calc() الأصلية بعد الترحيل: الصافي بيزيد بفرق المصروفات بالظبط (5,386 ريال)',()=>{const a=J(PINNED);a.exp=oldPinnedExp();a.expV=undefined;const b=J(a);MIG.migrateExp(b);a.mode=b.mode='حاوية';
+ close(SAW.calc(b).net-SAW.calc(a).net,5386,1e-6,'فرق الصافي')});
+t('المثال: 13 أوبن توب × 22 + 8 مقفول × 18، 21 باليت، 53.5 ج',()=>{const S=J(PINNED);const cs=BE.costsFrom(null);const D=dec();const C=BE.ctx(S,cs,D,'حاوية');const p=BE.planBE(C,D.items,[13,8]);
+ assert.strictEqual(C.E,53.5);assert.strictEqual(C.cap,21);assert.ok(p.R>13.1,'أعلى من 13.10 القديم: '+p.R)});
 console.log(n+' اختبار عدّوا');

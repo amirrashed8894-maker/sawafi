@@ -17,6 +17,7 @@ async function fresh(bt,name,opts,shots){const b=await launch(bt);const ctx=awai
  const st=await pg.evaluate(()=>DECAPP.state());const C=BE.ctx(st.safi,st.costs,st.dec,'حاوية');const exp=BE.planBE(C,st.dec.items,st.dec.items.map(i=>i.pal)).R;
  assert.strictEqual(num(await kpi(pg)).toFixed(2),exp.toFixed(2),'kpi = engine');
  assert.strictEqual((await ls(pg,'citrusCosts.v2')).usd,53.5,'costs FX synced');
+ assert.ok((await pg.textContent('#beSrc')).includes('8,500.00'),'container expenses 8,500');
  if(shots){await pg.screenshot({path:OUT+name+'-home-top.png'});await pg.locator('#app').screenshot({path:OUT+name+'-home-full.png'})}
  // الدولار بأرقام عربية
  await pg.fill('input[data-h="egp"]','٥٤٫٢');await pg.waitForTimeout(120);assert.strictEqual((await ls(pg,'safiNetback.v2')).egp,54.2);assert.strictEqual((await ls(pg,'citrusCosts.v2')).usd,54.2);
@@ -75,7 +76,8 @@ async function migration(bt,name,opts){const b=await launch(bt);const ctx=await 
   pk:[['كرتون مقفول 7 ك',7.15],['كرتون أوبن توب 7 ك',7.15]],lines:[['أبو سرة مقاس 24','كرتون أوبن توب 7 ك',1680,22,12,140,20886,{v:'أبو سرة',s:'24'}],['أبو سرة','كرتون مقفول 7 ك',1694,18,11,154,19628,{v:'أبو سرة',s:''}]],
   exp:[['مصروفات البراد',6500,0],['تخليص',0,5076]]};const j=JSON.stringify({ver:2,t:Date.now()-86400000,S});localStorage.setItem('safiNetback.v2',j);localStorage.setItem('safiNetback.v2.mirror',j)});errs.length=0; // favicon 404 على صفحة الـ manifest
  await pg.goto(URL);await pg.waitForSelector('#be .be-main b');const s=await ls(pg,'safiNetback.v2');
- assert.strictEqual(s.mode,'براد','saved mode kept');assert.strictEqual(s.egp,53,'saved FX kept');assert.strictEqual(s.fC,2800,'freight filled once');assert.strictEqual(s.lines.length,2);assert.strictEqual(s.lines[0][6],20886);
+ assert.strictEqual(s.mode,'براد','saved mode kept');
+ assert.deepStrictEqual(s.exp,[['مصروفات البراد',6500,0],['تخليص',0,5076]],'custom container expenses untouched');assert.strictEqual(s.egp,53,'saved FX kept');assert.strictEqual(s.fC,2800,'freight filled once');assert.strictEqual(s.lines.length,2);assert.strictEqual(s.lines[0][6],20886);
  assert.strictEqual((await ls(pg,'citrusCosts.v2')).usd,53);assert.ok((await pg.textContent('#hin')).includes('2,800$'),'notice');
  await pg.click('[data-ha="fromSales"]');await pg.waitForTimeout(100);assert.strictEqual(await pg.inputValue('input[data-h="items.0.pal"]'),'12');assert.strictEqual(await pg.inputValue('select[data-hs="items.0.sz"]'),'24');
  await pg.fill('input[data-h="fC"]','0');await pg.reload();await pg.waitForSelector('#be .be-main b');assert.strictEqual(await pg.inputValue('input[data-h="fC"]'),'0','migration only once');
@@ -88,5 +90,25 @@ async function migration(bt,name,opts){const b=await launch(bt);const ctx=await 
  await pg.goto(URL);await pg.waitForSelector('#be .be-main b');assert.strictEqual(await pg.inputValue('input[data-h="raw"]'),'12.5');assert.ok((await pg.textContent('#beSrc')).includes('530'));
  assert.strictEqual(await pg.inputValue('input[data-h="egp"]'),'53','FX canon kept over imported usd');
  assert.deepStrictEqual(errs,[],'errors: '+errs.join(' | '));await b.close();console.log('✓ migration',name)}
-(async()=>{for(const [bt,name,o,sh] of [[chromium,'chromium-desktop',{viewport:{width:1100,height:900}},false],[chromium,'chromium-mobile',Object.assign({},IPH,{userAgent:undefined}),false],[webkit,'webkit-iphone',IPH,true]]){await fresh(bt,name,o,sh);await migration(bt,name,o)}
+
+async function migrationExact(bt,name,opts,shots){const b=await launch(bt);const ctx=await b.newContext(opts);const pg=await ctx.newPage();const errs=[];watch(pg,errs);
+ await pg.goto(URL+'manifest.webmanifest');
+ await pg.evaluate(()=>{const oldExp=[['مصروفات البراد في السعودية (إجمالي)',6500,0],['رسوم موقف',0,2000],['كارت دخول',0,200],['رسوم إذن استيراد',0,300],['نقل من الثلاجة للسوق',0,300],['تخزين (إيجار طبالي بالثلاجة)',0,2310],['نقل الحاوية من الميناء',0,3700],['تخليص',0,5076],['مصاريف أخرى',0,0]];
+  const mk=(d,c)=>({date:d,sar:3.7567,egp:53,client:'فاكهة الصيف',mode:'حاوية',fB:15000,fC:2800,cost:16960.03,clients:[['حامد الغامدي',0.05],['فاكهة الصيف',0.06],['جبار البيشي',0.06]],pk:[['كرتون مقفول 7 ك',7.15],['كرتون أوبن توب 7 ك',7.15]],
+   lines:[['أبو سرة','كرتون أوبن توب 7 ك',c,22,c/140,140,20886,{v:'أبو سرة',s:''}]],exp:JSON.parse(JSON.stringify(oldExp))});
+  const j=JSON.stringify({ver:2,t:Date.now()-3600000,S:mk('2026-11-23',1820)});localStorage.setItem('safiNetback.v2',j);localStorage.setItem('safiNetback.v2.mirror',j);
+  localStorage.setItem('safiNetback.v2.days',JSON.stringify({'2026-11-17':{t:Date.now()-6*864e5,S:mk('2026-11-17',1680)}}))});errs.length=0;
+ await pg.goto(URL+'safi.html');await pg.waitForSelector('#et');
+ assert.strictEqual((await pg.textContent('#eC')).trim(),'8,500.00','container total migrated');assert.strictEqual((await pg.textContent('#eB')).trim(),'6,500.00','براد untouched');
+ const s=await ls(pg,'safiNetback.v2');assert.strictEqual(s.expV,2);assert.deepStrictEqual(s.exp.filter(r=>+r[2]),[['تخليص ونقل من الميناء',0,6500],['دخولية',0,2000]]);
+ const day=await pg.evaluate(()=>JSON.parse(localStorage.getItem('safiNetback.v2.days'))['2026-11-17'].S.exp.reduce((a,x)=>a+x[2],0));assert.strictEqual(day,13886,'saved report untouched');
+ if(shots){await pg.locator('#et').evaluate(e=>e.closest('.card').scrollIntoView());await pg.locator('#et').evaluate(e=>e.closest('.card')).then(()=>0);await pg.locator('section.card:has(#et)').screenshot({path:OUT+name+'-safi-expenses.png'})}
+ // فتح التقرير القديم: يفضل 13,886
+ await pg.click('#bDays');await pg.waitForSelector('[data-dd="2026-11-17"]');await pg.click('[data-dd="2026-11-17"]');await pg.waitForTimeout(200);assert.strictEqual((await pg.textContent('#eC')).trim(),'13,886.00','old report opens as is');
+ await pg.reload();await pg.waitForSelector('#et');assert.strictEqual((await pg.textContent('#eC')).trim(),'13,886.00','old report stays after reload');
+ // الرجوع للمدخلات الرئيسية ← الجديد
+ await pg.click('#bReset');await pg.waitForTimeout(200);assert.strictEqual((await pg.textContent('#eC')).trim(),'8,500.00','reset gives new defaults');
+ await pg.goto(URL);await pg.waitForSelector('#be .be-main b');assert.ok((await pg.textContent('#beSrc')).includes('8,500.00'));
+ assert.deepStrictEqual(errs,[],'errors: '+errs.join(' | '));await b.close();console.log('✓ expenses migration',name)}
+(async()=>{for(const [bt,name,o,sh] of [[chromium,'chromium-desktop',{viewport:{width:1100,height:900}},false],[chromium,'chromium-mobile',Object.assign({},IPH,{userAgent:undefined}),false],[webkit,'webkit-iphone',IPH,true]]){await fresh(bt,name,o,sh);await migration(bt,name,o);await migrationExact(bt,name,o,sh)}
  console.log('E2E passed')})().catch(e=>{console.error('FAIL',e.message);process.exit(1)});
