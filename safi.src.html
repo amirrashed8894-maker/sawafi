@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>الصوافي — الصوافي والتكاليف</title>
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="الصوافي">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+ <header class="top">
+  <div class="brand"><h1>الصوافي</h1><span class="sub">صافي سعر البيع في السعودية راجع لمصر</span></div>
+  <div class="tr"><span id="net" class="net"></span><span id="ls" class="ls"></span></div>
+ </header>
+ <div class="lblrow">العميل</div>
+ <nav id="clis" class="vars" aria-label="العميل"></nav>
+ <div class="lblrow">وسيلة النقل</div>
+ <nav id="modes" class="vars" aria-label="وسيلة النقل"></nav>
+ <div id="notice" class="notice" hidden></div>
+ <section class="card sum" id="sum"></section>
+ <div class="actions">
+  <button class="btn pri" id="bReport">عرض التقرير</button>
+  <button class="btn" id="bShare">PDF / واتساب</button>
+  <button class="btn" id="bPrint">طباعة</button>
+ </div>
+ <section class="card" id="mojmal"></section>
+ <section class="card" id="detail"></section>
+ <section class="card">
+  <h2>الأساسيات</h2>
+  <div class="grid" id="inputs"></div>
+ </section>
+ <section class="card">
+  <h2>المبيعات في السعودية <small>الكراتين = الباليتات × كراتين الباليت، والسعر ريال</small></h2>
+  <div id="lt"></div>
+  <button class="btn pri wide" data-add="lines" id="bNewLine">+ تعبئة جديدة</button>
+ </section>
+ <section class="card">
+  <h2>مصروفات الشحنة في السعودية <small>ريال</small></h2>
+  <div id="et"></div>
+  <button class="btn ghost wide" data-add="exp">+ بند</button>
+ </section>
+ <section class="card">
+  <h2>العملاء والعمولة</h2>
+  <div id="ct"></div>
+  <button class="btn ghost wide" data-add="clients">+ عميل</button>
+ </section>
+ <section class="card">
+  <h2>أنواع العبوات <small>الوزن كجم</small></h2>
+  <div id="pt"></div>
+  <button class="btn ghost wide" data-add="pk">+ عبوة</button>
+ </section>
+ <section class="card tools">
+  <div class="savenote">كل تعديل بيتحفظ تلقائي على الجهاز، والبرنامج بيفتح دايمًا على آخر تحديث.</div>
+  <button class="btn ghost" id="bReset">الرجوع للمدخلات الرئيسية</button>
+  <button class="btn ghost" id="bUndo" hidden>استرجاع آخر حفظ قبل الرجوع</button>
+  <button class="btn ghost" id="bDays" type="button" hidden>📂 الأيام المحفوظة</button>
+  <button class="btn ghost" id="bPin">تثبيت الأرقام الحالية كمدخلات رئيسية</button>
+  <div class="savenote" id="pinNote"></div>
+  <button class="btn ghost" id="bExport">تصدير البيانات</button>
+  <button class="btn ghost" id="bImport">استيراد البيانات</button>
+  <input type="file" id="fImport" accept="application/json,.json" hidden>
+ </section>
+ <footer class="foot">يشتغل من غير نت بعد أول فتح · البيانات محفوظة على الجهاز ده بس <span id="ver"></span></footer>
+</div>
+<div id="rep" class="rep" hidden>
+ <div class="repbar">
+  <button class="btn" id="rClose">رجوع</button>
+  <select id="rMode" class="btn sel" aria-label="نوع التقرير"><option value="full">التقرير المفصل</option><option value="m">التقرير المجمل</option></select>
+  <button class="btn pri" id="rShare">PDF / واتساب</button>
+  <button class="btn" id="rPrint">طباعة</button>
+ </div>
+ <div id="pages" class="pages"></div>
+</div>
+<div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
+<script src="nav.js?v=200"></script>
+<script src="core.js"></script>
+<script src="pinned.js"></script>
+<script src="pdf-share.js"></script>
+<script src="sizes.js?v=2"></script>
+<script src="app.js?v=200"></script>
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
+</script>
+</body>
+</html>

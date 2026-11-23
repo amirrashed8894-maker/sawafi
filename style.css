@@ -222,3 +222,12 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .be-how{margin-top:12px;font-size:12.5px;line-height:1.7}
 @media (max-width:560px){.be-g4{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .be-out .hint,.be #beWarn{font-size:13px;line-height:1.6;margin-top:4px;color:var(--mut)}.be #beWarn{margin:6px 0}
+/* v2.0.0 الشاشة الرئيسية */
+.home .hgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.home .f.big input{font-size:22px;font-weight:800}
+.be .kpi em.ok2{color:#0a7a2f;font-weight:800;font-size:15px;margin-top:4px}.be .kpi em.bad2{color:#b00020;font-weight:800;font-size:15px;margin-top:4px}
+.be .kpi.neg em.ok2{color:#0a7a2f}
+.lnk{float:left;font-size:13px;color:#0b57d0;text-decoration:none;font-weight:700}
+.bk td.v.sm{font-size:12.5px;font-weight:600;line-height:1.7;white-space:normal}
+.sm-in{width:70px;font:inherit;font-size:16px;padding:4px 6px;border:1px solid #cfcfcf;border-radius:8px;text-align:center;direction:ltr}.sm-in.bad{border-color:#b00;background:#fff3f3}
+.be-c input.bad{border-color:#b00;background:#fff3f3}

@@ -1,40 +1,46 @@
-/* اختبار سعر التعادل للخام: مطابقة معادلات برنامج تكاليف الموالح (calc) والصوافي (calc) الأصلية بالظبط */
+/* قرار شراء الخام: مطابقة calc() الأصلية للصوافي (core.js) وللتكاليف (costs-core.js) بالظبط + بحوث العمليات + الحالات الحدية */
 const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('path');
 const BE=require('../be-core.js');
-const load=(file,extra)=>{const c={module:{exports:{}},console,localStorage:{getItem:()=>null}};vm.createContext(c);vm.runInContext(fs.readFileSync(file,'utf8')+(extra||''),c);return c.module.exports};
-const SAW=load(path.join(__dirname,'../core.js'));
-const CIT_PATH=process.env.CITRUS||path.join(__dirname,'../../citrus-costs/core.js');
-const CIT=fs.existsSync(CIT_PATH)?load(CIT_PATH):null;
+const load=(file,extra)=>{const c={module:{exports:{}},console,localStorage:{getItem:()=>null},JSON};vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(__dirname,file),'utf8')+(extra||''),c);return c.module.exports};
+const SAW=load('../core.js');const PINNED=load('../core.js',fs.readFileSync(path.join(__dirname,'../pinned.js'),'utf8'));
+const CIT=load('../costs-core.js');const CDEF=load('../costs-core.js',';module.exports=JSON.parse(JSON.stringify(DEF))');
 const close=(a,b,tol,msg)=>assert.ok(Math.abs(a-b)<=tol,msg+': '+a+' vs '+b);
 let n=0;const t=(name,fn)=>{fn();n++;console.log('✓',name)};
-function baseS(){const S=JSON.parse(JSON.stringify(SAW.DEF));S.sar=3.7567;S.egp=53;S.client='فاكهة الصيف';S.fB=15000;S.fC=2500;
- S.pk.forEach(p=>{if(/ 7 ك/.test(p[0]))p[1]=7});
- S.exp=[['مصروفات البراد في السعودية (إجمالي)',6500,0]].concat(S.exp.map(e=>[e[0],0,e[2]]));
- S.rb=JSON.parse(JSON.stringify(BE.RB_DEF));S.rb.pw=0;return S}
+const J=o=>JSON.parse(JSON.stringify(o));
+function safi(){const S=J(PINNED);S.pk.forEach(p=>{if(/ 7 ك/.test(p[0]))p[1]=7});return S}
+function costs(){const c=BE.costsFrom(null);c.pw=0;return c}
+const dec=()=>BE.decFrom(null);
+t('نسخة DEF التكاليف في be-core = costs-core.js بالظبط',()=>assert.deepStrictEqual(J(BE.COSTS_DEF),J(CDEF)));
+t('أرقام أمير: حاوية أساسي، 21 باليت، الدولار 53.5، النولون 2,800$',()=>{assert.strictEqual(PINNED.mode,'حاوية');assert.strictEqual(PINNED.egp,53.5);assert.strictEqual(PINNED.fC,2800);assert.strictEqual(BE.DEC_DEF.cap['حاوية'],21);assert.strictEqual(BE.DEC_DEF.base,'حاوية')});
 for(const mode of BE.MODES){
- t('netback = calc() الصوافي ('+mode+')',()=>{const S=baseS();S.mode=mode;const C=BE.ctx(S,mode);const it=S.rb.items[0];
-  const q=C.cap*it.cpp;S.lines=[[it.v,it.pk,q,it.p]];const r=SAW.calc(S);const nbSaw=r.lines[0].nt*S.egp;
-  const x=BE.item(C,it),T=q*x.w/1000;const nbMine=x.rev-C.sharedE/T;close(nbMine,nbSaw,1e-6,'netback/طن')});
- if(CIT)t('R* داخل calc() تكاليف الموالح = صافي الطن ('+mode+')',()=>{const S=baseS();const C=BE.ctx(S,mode);const it=S.rb.items[0];
-  const p=BE.itemBE(C,it);const T=p.T;S.lines=[[it.v,it.pk,C.cap*it.cpp,it.p]];S.mode=mode;const nb=SAW.calc(S).lines[0].nt*S.egp;
-  const cs=JSON.parse(JSON.stringify(CIT.DEF));cs.net=T*1000;cs.raw=p.R;cs.cullP=S.rb.cullP;cs.loss=S.rb.loss/100;cs.cull=S.rb.cull/100;cs.pw=0;
-  cs.pkg=cs.pk.findIndex(z=>z[0]===it.pk);cs.variety='برتقال أبوسرة تلوين';const cr=CIT.calc(cs);
-  close(cr.ton,nb,1e-6,'تكلفة الطن عند R* = صافي الطن');assert.ok(p.R>0)});
+ t('صافي الطن = calc() الصوافي ('+mode+')',()=>{const S=safi();S.mode=mode;const C=BE.ctx(S,costs(),dec(),mode);const it=dec().items[0];const q=C.cap*it.cpp;S.lines=[[it.v,it.pk,q,it.p]];
+  const nbSaw=SAW.calc(S).lines[0].nt*S.egp;const x=BE.item(C,it);close(x.rev-C.sharedE/(q*x.w/1000),nbSaw,1e-6,'صافي/طن')});
+ t('R* داخل calc() التكاليف = صافي الطن ('+mode+')',()=>{const S=safi();const cs=costs();const C=BE.ctx(S,cs,dec(),mode);
+  for(const it of dec().items){const p=BE.itemBE(C,it);S.mode=mode;S.lines=[[it.v,it.pk,C.cap*it.cpp,it.p]];const nb=SAW.calc(S).lines[0].nt*S.egp;
+   const c2=J(CIT.DEF);c2.net=p.T*1000;c2.raw=p.R;c2.pw=0;c2.pkg=c2.pk.findIndex(z=>z[0]===it.pk);c2.variety='برتقال أبوسرة تلوين';close(CIT.calc(c2).ton,nb,1e-6,'تكلفة الطن عند R*')}});
 }
-t('الحاوية أساسي والبراد مقارنة في الافتراضي',()=>{assert.strictEqual(BE.RB_DEF.base,'حاوية');assert.strictEqual(BE.MODES[0],'حاوية')});
-t('سعر البيع العكسي يرجّع نفس الخام',()=>{const S=baseS();const C=BE.ctx(S,'حاوية');const it=S.rb.items[1];const R=BE.itemBE(C,it).R;close(BE.priceForRaw(C,it,R),it.p,1e-9,'السعر')});
-t('سيمبلكس: مسألة معروفة',()=>{const r=BE.simplex([3,5],[[1,0],[0,2],[3,2]],[4,12,18]);close(r.x[0],2,1e-9,'x1');close(r.x[1],6,1e-9,'x2');close(r.z,36,1e-9,'z')});
-t('الأمثل ≥ أي خطة (فحص بالقوة على كل التوزيعات الصحيحة)',()=>{const S=baseS();const C=BE.ctx(S,'حاوية');
- const items=[{v:'أبو سرة',sz:'72',pk:'كرتون أوبن توب 7 ك',cpp:140,p:22,max:''},{v:'أبو سرة',sz:'48',pk:'كرتون مقفول 7 ك',cpp:154,p:18,max:''},{v:'أبو سرة',sz:'56',pk:'كرتون مقفول 15 ك',cpp:72,p:42,max:6}];
- const o=BE.optimize(C,items);assert.strictEqual(o.status,'ok');let best=-1e9;
- for(let a=0;a<=20;a++)for(let c=0;c<=6&&a+c<=20;c++){const R=BE.planBE(C,items,[a,20-a-c,c]).R;if(R>best)best=R}
- assert.ok(o.R>=best-1e-9,'LP '+o.R+' best '+best);close(o.Rint,best,1e-9,'التقريب الصحيح');assert.ok(o.ni.reduce((s,v)=>s+v,0)===20)});
-t('قيد نسبة المقاس من الفرز',()=>{const S=baseS();const C=BE.ctx(S,'حاوية');
- const items=[{v:'أبو سرة',sz:'72',pk:'كرتون أوبن توب 7 ك',cpp:140,p:22,share:40},{v:'أبو سرة',sz:'48',pk:'كرتون مقفول 7 ك',cpp:154,p:18}];
- const o=BE.optimize(C,items);const t0=o.n[0]*140*7/1000,t1=o.n[1]*154*7/1000;assert.ok(t0<=0.4*(t0+t1)+1e-6,'نسبة '+t0/(t0+t1))});
-t('لصق التكاليف COSTS1 من برنامج التكاليف',()=>{const o={app:'citrus-costs',S:{raw:11,cullP:6,loss:0.01,cull:0.2,pw:0.005,pk:[['كرتون مقفول 7 ك',25,7]],sup:[['باليت',500]],var:[['ليمون',1700]]}};
- const b64=Buffer.from(JSON.stringify(o),'utf8').toString('base64');const r=BE.parseCosts('من برنامج التكاليف\nCOSTS1:'+b64);
- assert.strictEqual(r.cull,20);assert.strictEqual(r.pkp[0][1],25);assert.strictEqual(r.wash[0][0],'ليمون');assert.strictEqual(BE.parseCosts('كلام'),null)});
-t('الغسيل حسب الصنف',()=>{const rb=BE.RB_DEF;assert.strictEqual(BE.washOf(rb,'أبو سرة'),2500);assert.strictEqual(BE.washOf(rb,'صيفي'),1800);assert.strictEqual(BE.washOf(rb,'كلمنتينا'),1800)});
-t('calc() الأصلية ما اتغيرتش مع S.rb',()=>{const S=baseS();const a=JSON.stringify(SAW.calc(S));delete S.rb;assert.strictEqual(JSON.stringify(SAW.calc(S)),a)});
-console.log(n+' اختبار عدّوا'+(CIT?'':' (من غير مطابقة تكاليف الموالح — core.js مش موجود)'));
+t('مزيج أصناف = مطابق لمجموع السطور في calc() الصوافي',()=>{const S=safi();const cs=costs();const D=dec();const C=BE.ctx(S,cs,D,'حاوية');const n=[13,8];const p=BE.planBE(C,D.items,n);
+ S.mode='حاوية';S.lines=D.items.map((it,i)=>[it.v,it.pk,n[i]*it.cpp,it.p]);const r=SAW.calc(S);const netE=r.netEgp;
+ const costAtR=p.rows.reduce((a,x)=>a+x.t*(p.R*C.k-C.credit+x.pkg+C.sup+x.wash),0);close(costAtR,netE,1e-5,'تكلفة الشحنة عند R* = صافي الشحنة')});
+t('سعر البيع العكسي',()=>{const C=BE.ctx(safi(),costs(),dec(),'حاوية');const it=dec().items[1];close(BE.priceForRaw(C,it,BE.itemBE(C,it).R),it.p,1e-9,'السعر')});
+t('سيمبلكس',()=>{const r=BE.simplex([3,5],[[1,0],[0,2],[3,2]],[4,12,18]);close(r.z,36,1e-9,'z')});
+t('الأمثل = أحسن توزيع صحيح (فحص بالقوة)',()=>{const C=BE.ctx(safi(),costs(),dec(),'حاوية');
+ const items=[{v:'أبو سرة',pk:'كرتون أوبن توب 7 ك',cpp:140,p:22},{v:'أبو سرة',pk:'كرتون مقفول 7 ك',cpp:154,p:18},{v:'أبو سرة',pk:'كرتون مقفول 15 ك',cpp:72,p:42,max:6}];
+ const o=BE.optimize(C,items);let best=-1e9;for(let a=0;a<=21;a++)for(let c=0;c<=6&&a+c<=21;c++)best=Math.max(best,BE.planBE(C,items,[a,21-a-c,c]).R);
+ assert.ok(o.R>=best-1e-9);close(o.Rint,best,1e-9,'صحيح');assert.strictEqual(o.ni.reduce((s,v)=>s+v,0),21)});
+t('قيد نسبة المقاس',()=>{const C=BE.ctx(safi(),costs(),dec(),'حاوية');const items=[{v:'أبو سرة',sz:'24',pk:'كرتون أوبن توب 7 ك',cpp:140,p:22,share:40},{v:'أبو سرة',pk:'كرتون مقفول 7 ك',cpp:154,p:18}];
+ const o=BE.optimize(C,items);const a=o.n[0]*0.98,b=o.n[1]*1.078;assert.ok(a<=0.4*(a+b)+1e-6)});
+t('حالات حدية: فاضي/صفر/سالب',()=>{const C=BE.ctx(safi(),costs(),dec(),'حاوية');
+ assert.strictEqual(BE.planBE(C,[],[]).R,null);assert.strictEqual(BE.item(C,{v:'أبو سرة',pk:'كرتون مقفول 7 ك',cpp:0,p:18}).ok,false);
+ assert.strictEqual(BE.optimize(C,[{v:'x',pk:'كرتون مقفول 7 ك',cpp:'',p:''}]).status,'empty');
+ const neg=BE.itemBE(C,{v:'أبو سرة',pk:'كرتون مقفول 7 ك',cpp:154,p:2});assert.ok(neg.R<0,'R سالب '+neg.R);
+ const S0=safi();S0.sar=0;assert.strictEqual(BE.itemBE(BE.ctx(S0,costs(),dec(),'حاوية'),dec().items[0]).R,null);
+ const o=BE.optimize(C,[{v:'أبو سرة',pk:'كرتون مقفول 7 ك',cpp:154,p:2}]);assert.strictEqual(o.status,'ok');assert.ok(o.R<0)});
+t('تحميل التكاليف زي costs-app (برتقال ← 3 أصناف، sar افتراضي)',()=>{const c=BE.costsFrom({var:[['برتقال',2000],['ليمون',1500]],raw:12});assert.strictEqual(c.var.length,4);assert.strictEqual(c.var[0][0],'برتقال أبوسرة');assert.strictEqual(c.raw,12);assert.strictEqual(c.sar,3.75);assert.strictEqual(c.pk.length,6)});
+t('استيراد التكاليف القديمة: JSON و COSTS1 ورفض الغلط',()=>{const S={raw:11,cullP:6,loss:0.01,cull:0.2,pw:0.005,pk:[['كرتون مقفول 7 ك',25,7]],sup:[['باليت',500]],var:[['ليمون',1700]]};
+ assert.strictEqual(BE.parseCostsImport(JSON.stringify({app:'citrus-costs',S})).raw,11);
+ assert.strictEqual(BE.parseCostsImport('COSTS1:'+Buffer.from(JSON.stringify({app:'citrus-costs',S}),'utf8').toString('base64')).cull,0.2);
+ assert.strictEqual(BE.parseCostsImport(JSON.stringify({app:'sawafi',S})),null);assert.strictEqual(BE.parseCostsImport('كلام'),null)});
+t('الغسيل حسب الصنف',()=>{const c=BE.costsFrom(null);assert.strictEqual(BE.washOf(c,'أبو سرة'),2500);assert.strictEqual(BE.washOf(c,'صيفي'),1800);assert.strictEqual(BE.washOf(c,'كلمنتينا'),1800);assert.strictEqual(BE.washOf(c,''),null)});
+t('decFrom يقبل حفظ ناقص',()=>{const d=BE.decFrom({cap:{'حاوية':20},items:[]});assert.strictEqual(d.cap['براد'],23);assert.strictEqual(d.cap['حاوية'],20);assert.strictEqual(d.base,'حاوية')});
+console.log(n+' اختبار عدّوا');
