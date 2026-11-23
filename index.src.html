@@ -32,6 +32,7 @@
   <button class="btn" id="bShare">PDF / واتساب</button>
   <button class="btn" id="bPrint">طباعة</button>
  </div>
+ <section class="card be" id="be"></section>
  <section class="card" id="mojmal"></section>
  <section class="card" id="detail"></section>
  <section class="card">
@@ -85,7 +86,9 @@
 <script src="pinned.js"></script>
 <script src="pdf-share.js"></script>
 <script src="sizes.js?v=2"></script>
-<script src="app.js?v=141"></script>
+<script src="app.js?v=150"></script>
+<script src="be-core.js?v=150"></script>
+<script src="be-ui.js?v=150"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>

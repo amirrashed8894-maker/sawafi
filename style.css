@@ -204,3 +204,21 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .ln .nwin{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:6px}
 .ln .nwin.pkn{grid-column:1/-1;grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) 38px 38px}
 .ln .x.ok{background:#111;color:#fff}
+/* v1.5.0 سعر شراء الخام للتعادل */
+.be .be-modes{margin:0 0 10px}
+.be .kpi.be-main b{font-size:26px}.be .kpi em.sm2{font-size:12.5px;font-weight:600;margin-top:3px}
+.be .kpi.wide{grid-column:1/-1}
+.be-sub{font-weight:800;font-size:15px;margin:16px 0 8px;border-top:1px solid var(--line);padding-top:10px}.be-sub small{font-weight:500;color:var(--mut);font-size:12.5px}.be-sub.sm{font-size:14px;margin-top:12px}
+.be-it{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+.be-it .r1{display:flex;gap:6px;align-items:center;margin-bottom:6px}.be-it select{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px;border:1px solid #cfcfcf;border-radius:10px;background:#fff;color:var(--ink)}.be-it select.szs{flex:0 0 96px}
+.be-g4{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.be-c{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}.be-c small{font-size:11px}
+.be-c input,.be-tbl input,#bePaste{font:inherit;font-size:16px;padding:8px;border:1px solid #cfcfcf;border-radius:10px;width:100%;box-sizing:border-box;text-align:center;direction:ltr}
+.be-c input.bad,.be-tbl input.bad{border-color:#b00;background:#fff3f3}
+.be-out{margin-top:8px;background:var(--soft);border-radius:10px;padding:8px}.be-r{display:flex;gap:8px;align-items:baseline}.be-r b{font-size:20px}.be-r.sm b{font-size:15px}.be-r span{font-size:13px;color:var(--mut)}
+.be-btns{display:flex;gap:8px}.be-btns .btn{flex:1}
+.be-det{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.be-det summary{font-weight:800;cursor:pointer;font-size:15px}.be-det summary small{font-weight:500;color:var(--mut);font-size:12px}
+.be-tbl .r3{display:grid;grid-template-columns:1fr 110px 0;gap:6px;align-items:center;margin:4px 0;font-size:14px}
+#bePaste{text-align:right;direction:rtl;margin:4px 0 8px;font-size:14px}
+.be-how{margin-top:12px;font-size:12.5px;line-height:1.7}
+@media (max-width:560px){.be-g4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.be-out .hint,.be #beWarn{font-size:13px;line-height:1.6;margin-top:4px;color:var(--mut)}.be #beWarn{margin:6px 0}
