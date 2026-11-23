@@ -214,6 +214,11 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .ln.flash{animation:fl 1.6s ease}
 @keyframes fl{0%{background:#e8e8e6}100%{background:transparent}}
 .btn.wide.pri{margin-top:8px}
+
+/* v1.4.1 خانة «+ جديد» جوه السطر */
+.ln .nwin{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:6px}
+.ln .nwin.pkn{grid-column:1/-1;grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) 38px 38px}
+.ln .x.ok{background:#111;color:#fff}
 </style>
 </head>
 <body>
@@ -286,7 +291,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="pinned.js"></script>
 <script src="pdf-share.js"></script>
 <script src="sizes.js?v=2"></script>
-<script src="app.js?v=140"></script>
+<script src="app.js?v=141"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>

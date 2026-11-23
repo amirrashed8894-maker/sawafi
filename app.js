@@ -1,5 +1,5 @@
 /* الصوافي — الواجهة والتقرير (v1.2.0). الحساب كله من calc() الأصلية في core.js */
-const VER='1.4.0';
+const VER='1.4.1';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
 const SK='safiNetback.v2';
 /* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
@@ -138,12 +138,19 @@ const prodPk=n=>PRODPK.find(p=>p.n===n);
 function lineMeta(l){const m=l&&l[7];return m&&typeof m==='object'?m:null}
 function nameOf(v,sz){v=String(v||'').trim();sz=String(sz||'').trim();return v+(v&&sz?' مقاس '+sz:'')}
 function sizesOf(l){const m=lineMeta(l);if(!m||!m.v||!ALSX.groupOf)return [];const g=ALSX.groupOf(m.v);if(!g)return [];const pk=ALSX.packOf(g,l[1]);const r=ALSX.sizesFor(g,pk);return r===null?null:r}
-function varOpts(l){const m=lineMeta(l),cur=m?m.v:'';const known=[].concat(ALSX.VARIETIES||[],S.xv||[]);let o='<option value=""'+(cur||l[0]?'':' selected')+' disabled>اختار الصنف…</option>';
+function varOpts(l){const m=lineMeta(l),cur=m?m.v:'';const known=[].concat(ALSX.VARIETIES||[],S.xv||[]);let o='<option value=""'+(cur||l[0]?'':' selected')+'>اختار الصنف…</option>';
   if(!m&&l[0])o+='<option selected value="__keep">'+esc(l[0])+'</option>';else if(cur&&!known.includes(cur))o+='<option selected>'+esc(cur)+'</option>';
   Object.values(ALSX.GROUPS||{}).forEach(g=>{o+='<optgroup label="'+esc(g.name)+'">'+g.vars.map(v=>'<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>').join('')+'</optgroup>'});
   if((S.xv||[]).length)o+='<optgroup label="أصناف مضافة">'+S.xv.map(v=>'<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>').join('')+'</optgroup>';
   return o+'<option value="__newv">+ صنف جديد…</option>'}
-function sizeCell(l,i){const m=lineMeta(l),cur=m?String(m.s||''):'',L=sizesOf(l);
+/* v1.4.1: «+ جديد» بخانة كتابة جوه السطر بدل prompt() (آيفون)، وقيمة كل قائمة بتتحط بالـ JS بعد الرسم
+   (سفاري/WebKit: option أول disabled + optgroup بيخلي المتصفح يختار آخر اختيار «+ صنف جديد…» مهما كان selected). */
+let NEWED=null;
+function newIn(kind,i,ph,val,num){return '<div class="nwin"><input '+(num?'class="v" inputmode="decimal" ':'')+'data-nw="'+kind+'" data-i="'+i+'" placeholder="'+ph+'" value="'+esc(val||'')+'" enterkeyhint="done"><button class="x ok" data-nwok="'+kind+'" data-i="'+i+'" aria-label="تمام">✓</button></div>'}
+function pickVals(l){const m=lineMeta(l);return {pv:!m?(l[0]?'__keep':''):m.v,ps:m?String(m.s||''):'',pk:l[1]}}
+function fixSelects(root){(root||document).querySelectorAll('select[data-pv],select[data-ps],select[data-t$=":1"]').forEach(sel=>{if(sel.dataset.t&&!sel.dataset.t.startsWith('lines:'))return;const i=+(sel.dataset.pv!=null?sel.dataset.pv:sel.dataset.ps!=null?sel.dataset.ps:sel.dataset.t.split(':')[1]);const l=S.lines[i];if(!l)return;
+  const v=pickVals(l)[sel.dataset.pv!=null?'pv':sel.dataset.ps!=null?'ps':'pk'];const k=[...sel.options].findIndex(x=>x.value===v);sel.selectedIndex=k>=0?k:0})}
+function sizeCell(l,i){if(NEWED&&!S.lines[NEWED.i])NEWED=null;if(NEWED&&NEWED.k==='s'&&NEWED.i===i)return newIn('s',i,'المقاس',NEWED.d||'',1);const m=lineMeta(l),cur=m?String(m.s||''):'',L=sizesOf(l);
   if(L===null)return '<input class="v" inputmode="numeric" data-ps="'+i+'" aria-label="المقاس (العدد)" placeholder="المقاس" value="'+esc(cur)+'">';
   const all=L.slice();if(cur&&!all.includes(cur))all.unshift(cur);
   return '<select data-ps="'+i+'" aria-label="المقاس"'+(!m||!m.v?' disabled':'')+'><option value="">'+(m&&m.v?'المقاس —':'المقاس')+'</option>'+all.map(z=>'<option'+(z===cur?' selected':'')+'>'+esc(z)+'</option>').join('')+(m&&m.v?'<option value="__news">+ مقاس تاني…</option>':'')+'</select>'}
@@ -151,11 +158,11 @@ function pkOpts(sel){let o=S.pk.map(p=>{const a=prodPk(p[0]);return '<option val
   const extra=PRODPK.filter(p=>!S.pk.some(q=>q[0]===p.n));if(extra.length)o+='<optgroup label="عبوات برنامج الإنتاج">'+extra.map(p=>'<option value="prod:'+esc(p.n)+'">'+esc(p.n)+' — '+p.kg+' كجم</option>').join('')+'</optgroup>';
   return o+'<option value="__newpk">+ عبوة جديدة…</option>'}
 function setPack(row,v){if(v.startsWith('prod:')){const p=prodPk(v.slice(5));if(p&&!S.pk.some(q=>q[0]===p.n))S.pk.push([p.n,p.kg]);row[1]=p?p.n:row[1];return true}
-  if(v==='__newpk'){const n=(prompt('اسم العبوة الجديدة (مثال: كرتون مقفول 10 ك):')||'').trim();if(!n)return true;if(!S.pk.some(q=>q[0]===n)){const k=parseNum(prompt('وزن «'+n+'» بالكيلو:',String((ALSX.kgOfText&&ALSX.kgOfText(n))||''))||'');S.pk.push([n,isFinite(k)&&k>0?k:10])}row[1]=n;return true}
+  if(v==='__newpk'){NEWED={k:'pk',i:S.lines.indexOf(row)};return true}
   row[1]=v;return false}
 function renderTables(){
- $('#lt').innerHTML='<div class="lhd"><span class="pkg">الصنف · المقاس · العبوة (من برنامج الإنتاج)</span><span>باليتات</span><span>كراتين/باليت</span><span>الكراتين</span><span>السعر ريال</span></div>'+S.lines.map((l,i)=>'<div class="ln'+(!l[0]?' need':'')+'" data-line="'+i+'"><div class="r1 rv"><select data-pv="'+i+'" aria-label="الصنف">'+varOpts(l)+'</select>'+sizeCell(l,i)+'<button class="x" data-del="lines:'+i+'" aria-label="حذف">×</button></div><div class="r2"><select data-t="lines:'+i+':1" aria-label="نوع العبوة">'+pkOpts(l[1])+'</select>'+cell('lines:'+i+':4',l[4],'v','باليتات')+cell('lines:'+i+':5',l[5],'v','كراتين في الباليت')+'<div class="qauto" data-cartons="'+i+'" title="الكراتين = الباليتات × كراتين الباليت">'+f(+l[2]||0,0)+'</div>'+cell('lines:'+i+':3',l[3],'v','سعر العبوة')+'</div><div class="r2c"><div><label class="clab">تكلفة الطن هنا</label><div class="in'+(ERR['lines:'+i+':6']?' bad':'')+'"><input inputmode="decimal" class="v" data-t="lines:'+i+':6" aria-label="تكلفة الطن بالجنيه" value="'+esc(costShown(l,i))+'" placeholder="أدخل التكلفة"><span class="u">ج / طن</span></div></div><div class="plbox" data-pl="'+i+'"></div></div>'+errMsgs('lines:'+i)+'<div class="lv" data-lv="'+i+'"></div></div>').join('')+
-  '<div class="ltot" id="ltTot"></div>';
+ $('#lt').innerHTML='<div class="lhd"><span class="pkg">الصنف · المقاس · العبوة (من برنامج الإنتاج)</span><span>باليتات</span><span>كراتين/باليت</span><span>الكراتين</span><span>السعر ريال</span></div>'+S.lines.map((l,i)=>'<div class="ln'+(!l[0]?' need':'')+'" data-line="'+i+'"><div class="r1 rv">'+(NEWED&&NEWED.k==='v'&&NEWED.i===i?newIn('v',i,'اكتب اسم الصنف',NEWED.d||''):'<select data-pv="'+i+'" aria-label="الصنف">'+varOpts(l)+'</select>')+sizeCell(l,i)+'<button class="x" data-del="lines:'+i+'" aria-label="حذف">×</button></div><div class="r2">'+(NEWED&&NEWED.k==='pk'&&NEWED.i===i?'<div class="nwin pkn"><input data-nw="pkn" data-i="'+i+'" placeholder="اسم العبوة (مثال: كرتون مقفول 10 ك)"><input class="v" inputmode="decimal" data-nw="pkw" data-i="'+i+'" placeholder="الوزن كجم" enterkeyhint="done"><button class="x ok" data-nwok="pk" data-i="'+i+'" aria-label="تمام">✓</button><button class="x" data-nwx="1" aria-label="إلغاء">↩</button></div>':'<select data-t="lines:'+i+':1" aria-label="نوع العبوة">'+pkOpts(l[1])+'</select>')+cell('lines:'+i+':4',l[4],'v','باليتات')+cell('lines:'+i+':5',l[5],'v','كراتين في الباليت')+'<div class="qauto" data-cartons="'+i+'" title="الكراتين = الباليتات × كراتين الباليت">'+f(+l[2]||0,0)+'</div>'+cell('lines:'+i+':3',l[3],'v','سعر العبوة')+'</div><div class="r2c"><div><label class="clab">تكلفة الطن هنا</label><div class="in'+(ERR['lines:'+i+':6']?' bad':'')+'"><input inputmode="decimal" class="v" data-t="lines:'+i+':6" aria-label="تكلفة الطن بالجنيه" value="'+esc(costShown(l,i))+'" placeholder="أدخل التكلفة"><span class="u">ج / طن</span></div></div><div class="plbox" data-pl="'+i+'"></div></div>'+errMsgs('lines:'+i)+'<div class="lv" data-lv="'+i+'"></div></div>').join('')+
+  '<div class="ltot" id="ltTot"></div>';fixSelects($('#lt'));
  const on=j=>((S.mode=='براد')==(j==1))?' class="on"':'';
  const md=j=>((S.mode=='براد')==(j==1))?' on':' off';
  $('#et').innerHTML=S.exp.map((e,i)=>'<div class="ln"><div class="r1">'+cell('exp:'+i+':0',e[0],'txt','البند')+'<button class="x" data-del="exp:'+i+'" aria-label="حذف">×</button></div><div class="r2e"><div class="mi'+md(1)+'"><span>براد</span>'+cell('exp:'+i+':1',e[1],'v','براد')+'</div><div class="mi'+md(2)+'"><span>حاوية</span>'+cell('exp:'+i+':2',e[2],'v','حاوية')+'</div></div>'+errMsgs('exp:'+i)+'</div>').join('')+
@@ -224,7 +231,7 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.date){const raw=t.value,iso=parseDateInput(raw);if(!String(raw).trim())setErr('date','فاضي — اكتب التاريخ يوم/شهر/سنة',raw);else if(!iso)setErr('date','اكتبه يوم/شهر/سنة ميلادي، زي 11/11/2026',raw);else{setErr('date','');S.date=iso}markBad(t,'date');save();return}
  if(t.dataset.k){const k=t.dataset.k,key='k:'+k,msg=checkVal(t.value,RULES[k][1]);setErr(key,msg,t.value);if(!msg)S[k]=toStore(t.value);markBad(t,key);save();renderLive();return}
  if(t.dataset.t){const [a,i,j]=t.dataset.t.split(':'),row=S[a][+i];if(!row)return;
-  if(t.tagName=='SELECT'){if(a=='lines'&&j=='1'){const sp=setPack(row,t.value);save();renderTables();renderLive();return}row[+j]=t.value;save();renderLive();return}
+  if(t.tagName=='SELECT'){if(a=='lines'&&j=='1'){setPack(row,t.value);save();renderTables();renderLive();focusNew();return}row[+j]=t.value;save();renderLive();return}
   if(j=='0'){const old=row[0];row[0]=t.value;                 // نفس سلوك الأصلي في تغيير الأسماء
    if(a=='clients'&&S.client==old)S.client=t.value;
    if(a=='pk')S.lines.forEach(l=>{if(l[1]==old)l[1]=t.value});
@@ -238,13 +245,27 @@ document.addEventListener('change',e=>{const t=e.target;if(t.id=='rMode'){REPMOD
  const key=t.dataset.k?'k:'+t.dataset.k:t.dataset.t;if(!key||t.tagName=='SELECT'||ERR[key])return;if(String(t.value).trim()==='')return;const x=parseNum(t.value);if(isFinite(x)&&String(x)!==t.value.trim())t.value=String(x)});
 function onPick(t){const i=t.dataset.pv!=null?+t.dataset.pv:+t.dataset.ps,l=S.lines[i];if(!l)return false;let m=lineMeta(l);
  if(t.dataset.pv!=null){let v=t.value;if(v==='__keep')return true;
-  if(v==='__newv'){v=(prompt('اسم الصنف الجديد:')||'').trim();if(!v){renderTables();renderLive();return true}if(![].concat(ALSX.VARIETIES||[]).includes(v)){S.xv=Array.isArray(S.xv)?S.xv:[];if(!S.xv.includes(v))S.xv.push(v)}}
+  if(v===''){renderTables();return true}
+  if(v==='__newv'){NEWED={k:'v',i};renderTables();focusNew();return true}
   m={v,s:m&&m.v===v?m.s||'':''};l[7]=m;l[0]=nameOf(m.v,m.s)}
- else{let z=t.value;if(z==='__news'){z=String(parseNum(prompt('المقاس (عدد الحبات):')||'')||'');if(z==='NaN')z=''}
+ else{let z=t.value;if(z==='__news'){NEWED={k:'s',i};renderTables();focusNew();return true}
   if(!m)m=l[7]={v:l[0]||'',s:''};m.s=String(z||'').trim();l[0]=nameOf(m.v,m.s)}
  save();if(t.tagName==='SELECT'||t.dataset.pv!=null)renderTables();renderLive();return true}
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&(t.dataset.pv!=null||(t.dataset.ps!=null&&t.tagName==='SELECT')))onPick(t)});
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.ps!=null&&t.tagName==='INPUT')onPick(t)});
+function focusNew(){if(!NEWED)return;const e=document.querySelector('[data-nw][data-i="'+NEWED.i+'"]');if(e){e.focus();e.scrollIntoView({block:'center'})}}
+function commitNew(kind,i){const l=S.lines[i];if(!l||!NEWED){NEWED=null;return}
+ if(kind==='v'){const e=document.querySelector('[data-nw="v"][data-i="'+i+'"]'),v=(e?e.value:'').trim();if(v){if(![].concat(ALSX.VARIETIES||[]).includes(v)){S.xv=Array.isArray(S.xv)?S.xv:[];if(!S.xv.includes(v))S.xv.push(v)}const m=lineMeta(l);l[7]={v,s:m&&m.v===v?m.s||'':''};l[0]=nameOf(v,l[7].s)}else if(NEWED.old){l[0]=NEWED.old[0];if(NEWED.old[1])l[7]=NEWED.old[1];else l.length=Math.min(l.length,7)}}
+ else if(kind==='s'){const e=document.querySelector('[data-nw="s"][data-i="'+i+'"]');if(e&&!e.value.trim()&&NEWED.old){l[0]=NEWED.old[0];if(NEWED.old[1])l[7]=NEWED.old[1]}}
+ else if(kind==='pk'){const n=(document.querySelector('[data-nw="pkn"][data-i="'+i+'"]')||{}).value||'',w=parseNum((document.querySelector('[data-nw="pkw"][data-i="'+i+'"]')||{}).value||'');const nm=n.trim();
+  if(nm){if(!S.pk.some(q=>q[0]===nm))S.pk.push([nm,isFinite(w)&&w>0?w:((ALSX.kgOfText&&ALSX.kgOfText(nm))||10)]);l[1]=nm}}
+ NEWED=null;save();renderAll()}
+document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||t.dataset.nw==null)return;const i=+t.dataset.i,l=S.lines[i];if(!l)return;
+ if(t.dataset.nw==='v'){if(!NEWED||NEWED.i!==i)return;if(!NEWED.old)NEWED.old=[l[0],l[7]];NEWED.d=t.value;const v=t.value.trim();const o=NEWED.old[1];l[7]={v,s:o&&o.v===v?o.s||'':''};l[0]=nameOf(v,l[7].s);save()}
+ else if(t.dataset.nw==='s'){if(NEWED&&NEWED.i===i&&!NEWED.old)NEWED.old=[l[0],JSON.parse(JSON.stringify(l[7]||null))];if(NEWED)NEWED.d=t.value;const m=lineMeta(l)||(l[7]={v:l[0]||'',s:''});m.s=t.value.trim();l[0]=nameOf(m.v,m.s);save();renderLive()}});
+document.addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t.dataset&&t.dataset.nw){e.preventDefault();commitNew(t.dataset.nw==='pkn'||t.dataset.nw==='pkw'?'pk':t.dataset.nw,+t.dataset.i)}});
+document.addEventListener('focusout',e=>{const t=e.target;if(!t.dataset||(t.dataset.nw!=='v'&&t.dataset.nw!=='s'))return;setTimeout(()=>{const a=document.activeElement;if(NEWED&&NEWED.k===t.dataset.nw&&!(a&&a.dataset&&(a.dataset.nwok||a.dataset.nw)))commitNew(t.dataset.nw,+t.dataset.i)},0)});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.nwok){e.stopPropagation();commitNew(b.dataset.nwok,+b.dataset.i)}else if(b.dataset.nwx){e.stopPropagation();NEWED=null;renderTables();renderLive()}},true);
 function blocked(){const E=errList(true);if(!E.length)return false;alert('صحّح الخانات دي الأول:\n• '+E.join('\n• '));return true}
 function downloadJson(name,obj){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
 function exportData(){flushSave();downloadJson('الصوافي-'+cairoISO()+'.json',{app:'sawafi',ver:2,t:lastT||Date.now(),S,pending:Object.keys(ERR).length?{ERR,DR}:undefined})}
