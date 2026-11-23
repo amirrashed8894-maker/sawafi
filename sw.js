@@ -1,5 +1,5 @@
-const C='sawafi-v1.3.0';
-const F=['./','./index.html','./core.js','./pinned.js','./app.js','./app.js?v=130','./pdf-share.js','./pdfjs/pdf.min.js?v=3.11.174','./pdfjs/pdf.worker.min.js?v=3.11.174','./style.css','./html2canvas.min.js','./jspdf.umd.min.js','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','./icon-maskable-512.png','./fonts/cairo-arabic.woff2','./fonts/cairo-latin.woff2','./fonts/cairo-latin-ext.woff2'];
+const C='sawafi-v1.4.0';
+const F=['./','./index.html','./core.js','./pinned.js','./app.js','./app.js?v=140','./sizes.js','./sizes.js?v=2','./pdf-share.js','./pdfjs/pdf.min.js?v=3.11.174','./pdfjs/pdf.worker.min.js?v=3.11.174','./style.css','./html2canvas.min.js','./jspdf.umd.min.js','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','./icon-maskable-512.png','./fonts/cairo-arabic.woff2','./fonts/cairo-latin.woff2','./fonts/cairo-latin-ext.woff2'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>Promise.all(F.map(u=>c.add(new Request(u,{cache:'reload'}))))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x.startsWith('sawafi-')&&x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{

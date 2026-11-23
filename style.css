@@ -191,3 +191,11 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 
 .ls.warn{color:#b45309;font-weight:700}
 .savenote{flex-basis:100%;font-size:12px;color:var(--mut);line-height:1.6}
+
+/* v1.4.0 تعبئة جديدة */
+.ln .r1.rv{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 38px}
+.ln .r1.rv select{font-weight:700;font-size:15px}
+.ln.need .r1.rv select:first-child{border:2px solid #111;background:#f3f3f2}
+.ln.flash{animation:fl 1.6s ease}
+@keyframes fl{0%{background:#e8e8e6}100%{background:transparent}}
+.btn.wide.pri{margin-top:8px}

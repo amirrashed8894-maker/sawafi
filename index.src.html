@@ -41,7 +41,7 @@
  <section class="card">
   <h2>المبيعات في السعودية <small>الكراتين = الباليتات × كراتين الباليت، والسعر ريال</small></h2>
   <div id="lt"></div>
-  <button class="btn ghost wide" data-add="lines">+ سطر بيع</button>
+  <button class="btn pri wide" data-add="lines" id="bNewLine">+ تعبئة جديدة</button>
  </section>
  <section class="card">
   <h2>مصروفات الشحنة في السعودية <small>ريال</small></h2>
@@ -84,7 +84,8 @@
 <script src="core.js"></script>
 <script src="pinned.js"></script>
 <script src="pdf-share.js"></script>
-<script src="app.js?v=130"></script>
+<script src="sizes.js?v=2"></script>
+<script src="app.js?v=140"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>

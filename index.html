@@ -206,6 +206,14 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 
 .ls.warn{color:#b45309;font-weight:700}
 .savenote{flex-basis:100%;font-size:12px;color:var(--mut);line-height:1.6}
+
+/* v1.4.0 تعبئة جديدة */
+.ln .r1.rv{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 38px}
+.ln .r1.rv select{font-weight:700;font-size:15px}
+.ln.need .r1.rv select:first-child{border:2px solid #111;background:#f3f3f2}
+.ln.flash{animation:fl 1.6s ease}
+@keyframes fl{0%{background:#e8e8e6}100%{background:transparent}}
+.btn.wide.pri{margin-top:8px}
 </style>
 </head>
 <body>
@@ -234,7 +242,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
  <section class="card">
   <h2>المبيعات في السعودية <small>الكراتين = الباليتات × كراتين الباليت، والسعر ريال</small></h2>
   <div id="lt"></div>
-  <button class="btn ghost wide" data-add="lines">+ سطر بيع</button>
+  <button class="btn pri wide" data-add="lines" id="bNewLine">+ تعبئة جديدة</button>
  </section>
  <section class="card">
   <h2>مصروفات الشحنة في السعودية <small>ريال</small></h2>
@@ -277,7 +285,8 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="core.js"></script>
 <script src="pinned.js"></script>
 <script src="pdf-share.js"></script>
-<script src="app.js?v=130"></script>
+<script src="sizes.js?v=2"></script>
+<script src="app.js?v=140"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update();setInterval(function(){r.update()},3600000)});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>
