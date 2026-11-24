@@ -58,7 +58,7 @@ function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.t
  $('#net').innerHTML=N(f(S.net/1000,1))+' طن · الدولار '+N(f(S.usd));
  const nv=$('#notice');const vOk=S.var.some(v=>v[0]===S.variety);nv.hidden=vOk;if(!vOk)nv.innerHTML='الصنف «'+esc(S.variety)+'» مش موجود في جدول الغسيل، فالغسيل محسوب صفر. اختار صنف من فوق.';
  if(bad){$('#sum').innerHTML='<div class="lbl">تكلفة الطن الصافي ظهر الحاوية</div><div class="big"><span class="egp num">—</span></div><div class="err"><b>مفيش حساب لحد ما تصحح الخانات المعلّمة:</b><ul>'+E.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>';
-  ['#mojmal','#cmp','#detail'].forEach(s=>$(s).innerHTML='<h2>'+{'#mojmal':'المجمل','#cmp':'مقارنة العبوات','#detail':'التفاصيل'}[s]+'</h2><div class="hint">هيظهر بعد تصحيح المدخلات.</div>');const st=$('#supTot');if(st)st.textContent='—';const so=$('#smOut');if(so)so.innerHTML='<div class="hint">هيظهر بعد تصحيح المدخلات.</div>';return}
+  ['#mojmal','#cmp','#detail'].forEach(s=>$(s).innerHTML='<h2>'+{'#mojmal':'المجمل','#cmp':'مقارنة العبوات','#detail':'التفاصيل'}[s]+'</h2><div class="hint">هيظهر بعد تصحيح المدخلات.</div>');const st=$('#supTot');if(st)st.textContent='—';const so=$('#smOut');if(so){const sx=SMON()?smOf(S):null;if(sx&&sx.over)renderSMOut({sm:sx});else so.innerHTML='<div class="hint">هيظهر بعد تصحيح المدخلات.</div>'}return}
  const r=CALC(S),u=S.usd,T=S.net/1000;window.__r=r;renderSMOut(r);
  $('#sum').innerHTML='<div class="lbl">تكلفة الطن الصافي ظهر الحاوية — '+esc(S.variety)+' · '+esc(r.pkgName)+'</div><div class="big"><span class="egp num">'+f(r.ton)+'<i>ج</i></span><span class="usd num">$'+f(r.ton/u)+'</span></div>'+
   '<div class="kpis">'+

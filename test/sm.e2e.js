@@ -43,7 +43,7 @@ async function run(bt,name,opts){const b=await launch(bt);const ctx=await b.newC
  let alerted='';pg.removeAllListeners('dialog');pg.on('dialog',d=>{alerted=d.message();d.accept()});await pg.click('#bReport');await pg.waitForTimeout(200);assert.ok(alerted.includes('نسبة السوبرماركت'),'blocked report');
  pg.removeAllListeners('dialog');pg.on('dialog',d=>d.accept());
  // مجموع الفرزة + السوبرماركت ≥ 100%: تحذير ومفيش حساب، وبيرجع لما تصلّح
- await typeIn(pg,'[data-sm="p"]','85');let sm=await pg.innerText('#sum');assert.ok(sm.includes('توزيع الخام'),'sum>100 listed '+sm.slice(0,200));assert.ok((await pg.innerText('#smOut')).length>0);
+ await typeIn(pg,'[data-sm="p"]','85');let sm=await pg.innerText('#sum');assert.ok(sm.includes('توزيع الخام'),'sum>100 listed '+sm.slice(0,200));assert.ok((await pg.innerText('#smOut')).includes('لازم أقل من 100%'),'card warning');
  await typeIn(pg,'[data-k="cull"]','10');assert.ok(!(await pg.innerText('#sum')).includes('توزيع الخام'),'fixed by lowering cull');await typeIn(pg,'[data-k="cull"]','15');
  await typeIn(pg,'[data-sm="p"]','10');
  // الحفظ بعد إعادة الفتح
