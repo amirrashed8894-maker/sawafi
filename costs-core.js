@@ -41,27 +41,33 @@ function checkVal(raw,rule,opt){var t=String(raw==null?'':raw).trim();if(t==='')
   return ''}
 /* القيمة اللي بتتخزن في S بنفس شكل البرنامج الأصلي: (+قيمة||0) والنسب ÷ 100 */
 function toStore(raw,pct){var t=String(raw==null?'':raw).trim();var x=t===''?0:parseNum(t);return pct?(x||0)/100:(x||0)}
-/* ---------- محلي سوبرماركت (v2.2.0، طلب أمير 24/11/2026) ----------
-   جزء من الفرزة (مقاسات صغيرة زي 100 و 113) بيتعبّى في صندوق بلاستيك ويتباع محلي سوبرماركت بسعر أعلى شامل الصندوق.
-   calc() الأصلية ما اتلمستش: calcX = calc + «زيادة السوبرماركت عن الفرزة» لكل طن صافي. لو النسبة صفر النتيجة هي calc بالظبط.
-   S.sm = {p: نسبة من الفرزة (0..1)، price: سعر البيع، basis: 'kg' ج/كجم قائم (فاكهة + وزن الصندوق) أو 'box' ج/صندوق،
-           box: رقم نوع الصندوق، bx: [[الاسم، سعر الصندوق ج، صافي الفاكهة كجم، وزن الصندوق فاضي كجم]...]، oth: مصاريف تانية ج/صندوق، sizes: نص}
-   نفس المعادلة في be-core.js (BE.smOf) — test/sm.test.js بيطابقهم. */
-const SM_DEF={p:0,price:12,basis:'kg',box:0,oth:0,sizes:'100، 113',bx:[['صندوق جامبو 15 كجم',18,15,1.2],['صندوق بلاستيك 8 كجم',13.5,7.5,0.8]]};
+/* ---------- محلي سوبرماركت — فرزة مقاسات 100-113 (v2.2.0، طلب أمير 24/11/2026) ----------
+   مخرج مستقل من الخام جنب التصدير والفرزة والهالك: نسبته من الفاكهة بعد الهالك (نفس أساس نسبة الفرزة)، والفرزة بتفضل زي ما هي مكتوبة.
+   توزيع الخام: هالك = هالك% · فرزة = (1−هالك)×فرزة% · سوبرماركت = (1−هالك)×سوبرماركت% · تصدير = الباقي = (1−هالك)×(1−فرزة−سوبرماركت) → المجموع 100%.
+   فالسوبرماركت بيقلل نصيب التصدير من نفس الخام (الخام المطلوب لطن تصدير بيزيد)، وبيتباع بسعره هو شامل وزن الصندوق.
+   calc() الأصلية ما اتلمستش: calcX = calc على فرزة+سوبرماركت (نفس الخام المطلوب والهالك بالظبط) وبعدين جزء السوبرماركت بيتسعّر بسعره بدل سعر الفرزة.
+   لو النسبة صفر النتيجة هي calc بالظبط. S.sm = {p: نسبة من الفاكهة بعد الهالك (0..1)، price، basis: 'kg' ج/كجم قائم (فاكهة + وزن الصندوق) أو 'box' ج/صندوق،
+   box: رقم نوع الصندوق، bx: [[الاسم، سعر الصندوق ج، صافي الفاكهة كجم، وزن الصندوق فاضي كجم]...]، oth: مصاريف تانية ج/صندوق، sizes: نص للعرض}
+   نفس الكود حرفيًا في be-core.js — test/sm.test.js بيطابقهم. */
+const SM_DEF={p:0,price:12,basis:'kg',box:0,oth:0,sizes:'100-113',bx:[['صندوق جامبو 15 كجم',18,15,0.65],['صندوق بلاستيك 8 كجم',13.5,7.5,0.8]]};
 function smState(s){const d=JSON.parse(JSON.stringify(SM_DEF)),o=s&&s.sm;
  if(o&&typeof o==='object'){for(const k in d)if(o[k]!==undefined&&o[k]!==null&&Array.isArray(d[k])===Array.isArray(o[k]))d[k]=o[k]}
  d.bx=(d.bx||[]).filter(b=>Array.isArray(b));if(!d.bx.length)d.bx=JSON.parse(JSON.stringify(SM_DEF.bx));d.box=Math.floor(+d.box)||0;if(d.box<0||d.box>=d.bx.length)d.box=0;
  if(d.basis!=='box')d.basis='kg';return d}
-function smOf(s,loss,cull){const n=x=>{const v=+x;return isFinite(v)?v:0};const m=smState(s);cull=n(cull!=null?cull:s.cull);
- const b=m.bx[m.box],net=n(b[2]),tare=n(b[3]),cost=n(b[1]),oth=n(m.oth),price=n(m.price),share=Math.min(1,Math.max(0,n(m.p)));
- const cullT=cull<1?1000*cull/(1-cull):0;                       // كجم فرزة لكل طن صافي (زي calc: الفرزة ÷ الطن)
- const on=share>0&&net>0&&cullT>0;const kgT=on?cullT*share:0,boxes=on?kgT/net:0,gross=boxes*(net+tare);
- const rev=m.basis==='box'?boxes*price:gross*price,boxC=boxes*(cost+oth),old=kgT*n(s.cullP),gain=on?rev-boxC-old:0;
- return {on,m,name:String(b[0]||''),share,net,tare,cost,oth,price,basis:m.basis,cullT,kgT,boxes,gross,rev,boxC,old,gain,
-  perKg:kgT>0?(rev-boxC)/kgT:null,perBox:boxes>0?rev/boxes:null}}
-function calcX(s){const r=calc(s),x=smOf(s);r.sm=x;if(!x.on)return r;const T=s.net/1000,g=x.gain;
- r.smGain=g;r.rawT-=g;r.ton-=g;r.kg=r.ton/1000;r.perPkg=r.kg*r.pkgW;r.cont=r.ton*T;
- r.smKg=x.kgT*T;r.smBoxes=x.boxes*T;r.smGross=x.gross*T;r.smRev=x.rev*T;r.smBoxC=x.boxC*T;r.cullLeftKg=r.cullKg-r.smKg;r.cullSale=r.cullLeftKg*s.cullP;
- r.cmp.forEach(c=>c.v-=g);return r}
+function smOf(s,loss,cull){const n=x=>{const v=+x;return isFinite(v)?v:0};const m=smState(s);loss=n(loss!=null?loss:s.loss);cull=n(cull!=null?cull:s.cull);
+ const b=m.bx[m.box],net=n(b[2]),tare=n(b[3]),cost=n(b[1]),oth=n(m.oth),price=n(m.price),share=Math.min(1,Math.max(0,n(m.p))),exp=1-cull-share;
+ const over=share>0&&exp<=1e-9;                                  // الفرزة + السوبرماركت ≥ 100% = مفيش تصدير
+ const on=share>0&&net>0&&!over&&loss<1;
+ const kgT=on?1000*share/exp:0,boxes=on?kgT/net:0,gross=boxes*(net+tare);   // كجم سوبرماركت لكل طن تصدير صافي
+ const rev=m.basis==='box'?boxes*price:gross*price,boxC=boxes*(cost+oth),netRev=rev-boxC,asCull=kgT*n(s.cullP);
+ const split={loss:loss,cull:(1-loss)*cull,sm:(1-loss)*share,exp:(1-loss)*Math.max(0,exp)};
+ return {on,over,m,name:String(b[0]||''),share,net,tare,cost,oth,price,basis:m.basis,kgT,boxes,gross,rev,boxC,netRev,asCull,gain:on?netRev-asCull:0,
+  perKg:kgT>0?netRev/kgT:null,perBox:boxes>0?rev/boxes:null,split}}
+function calcX(s){const x=smOf(s);if(!x.on){const r=calc(s);r.sm=x;return r}
+ const s2=JSON.parse(JSON.stringify(s));s2.cull=(+s.cull||0)+x.share;const r=calc(s2),T=s.net/1000,raw2=r.rawT;r.sm=x;
+ const after=r.rawNeed-r.lossKg;r.cullKg=after*(+s.cull||0);r.smKg=after*x.share;r.cullSale=r.cullKg*s.cullP;r.cullC=r.cullKg*(s.raw-s.cullP)/T;
+ r.smBoxes=x.boxes*T;r.smGross=x.gross*T;r.smRev=x.rev*T;r.smBoxC=x.boxC*T;r.smNet=x.netRev*T;r.smC=(r.smKg*s.raw-r.smNet)/T;   // تكلفة السوبرماركت ج/طن = خامه − صافي بيعه بعد الصندوق
+ r.smGain=x.gain;r.rawT=r.buy+r.lossC+r.cullC+r.smC;r.ton=r.rawT+r.pkgC+r.supT+r.wash;r.kg=r.ton/1000;r.perPkg=r.kg*r.pkgW;r.cont=r.ton*T;
+ const dl=r.rawT-raw2;r.cmp.forEach(c=>c.v+=dl);return r}
 var CORE={DEF:DEF,calc:calc,calcX:calcX,smOf:smOf,smState:smState,SM_DEF:SM_DEF,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore};
 if(typeof module!=='undefined')module.exports=CORE;

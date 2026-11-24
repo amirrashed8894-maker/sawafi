@@ -1,4 +1,4 @@
-/* الصوافي والتكاليف v2.2.0 (محلي سوبرماركت بدل جزء من الفرزة: الفرزة المباعة + زيادة السوبرماركت) — v2.0.0: محرك «قرار شراء الخام» (بحوث العمليات). دوال حسابية بحتة، من غير DOM ولا نت.
+/* الصوافي والتكاليف v2.2.0 (محلي سوبرماركت مقاسات 100-113: مخرج مستقل من الخام) — v2.0.0: محرك «قرار شراء الخام» (بحوث العمليات). دوال حسابية بحتة، من غير DOM ولا نت.
    بيقرا مباشرة من بيانات قسم الصوافي (safiNetback.v2) وقسم التكاليف (citrusCosts.v2) على نفس الموقع، ومن إعدادات القرار (decision.v1).
    ما بيلمسش calc() بتاعة الصوافي ولا بتاعة التكاليف — بيطابقهم بالظبط (test/be.test.js).
    تكلفة الطن الصافي (calc التكاليف): خام×k − فرزة مباعة محلي + عبوات + مستلزمات + غسيل،  k = 1000 ÷ ((1−هالك)×(1−فرزة))
@@ -32,19 +32,21 @@ function washOf(C,v){const n=norm(v),W=C.var||[];const hit=t=>W.find(w=>norm(w[0
  return w?num(w[1]):null}
 function pkRow(C,name){return (C.pk||[]).find(x=>x[0]===name)||(C.pk||[]).find(x=>norm(x[0])===norm(name))||null}
 function pkW(safi,costs,name){const p=(safi.pk||[]).find(x=>x[0]===name);if(p&&+p[1]>0)return +p[1];const c=pkRow(costs,name);if(c&&+c[2]>0)return +c[2];const m=String(name||'').match(/(\d+(?:\.\d+)?)\s*ك/);return m?+m[1]:0}
-/* محلي سوبرماركت v2.2.0 — نسخة حرفية من costs-core.js (test/sm.test.js بيتأكد إنها نفس الكود ونفس النتيجة) */
-const SM_DEF={p:0,price:12,basis:'kg',box:0,oth:0,sizes:'100، 113',bx:[['صندوق جامبو 15 كجم',18,15,1.2],['صندوق بلاستيك 8 كجم',13.5,7.5,0.8]]};
+/* محلي سوبرماركت (فرزة مقاسات 100-113) v2.2.0 — مخرج مستقل نسبته من الفاكهة بعد الهالك؛ k = 1000 ÷ ((1−هالك)×(1−فرزة−سوبرماركت))، والخصم = الفرزة بسعرها + السوبرماركت بصافي بيعه بعد الصندوق. نسخة حرفية من costs-core.js (test/sm.test.js بيتأكد إنها نفس الكود ونفس النتيجة) */
+const SM_DEF={p:0,price:12,basis:'kg',box:0,oth:0,sizes:'100-113',bx:[['صندوق جامبو 15 كجم',18,15,0.65],['صندوق بلاستيك 8 كجم',13.5,7.5,0.8]]};
 function smState(s){const d=JSON.parse(JSON.stringify(SM_DEF)),o=s&&s.sm;
  if(o&&typeof o==='object'){for(const k in d)if(o[k]!==undefined&&o[k]!==null&&Array.isArray(d[k])===Array.isArray(o[k]))d[k]=o[k]}
  d.bx=(d.bx||[]).filter(b=>Array.isArray(b));if(!d.bx.length)d.bx=JSON.parse(JSON.stringify(SM_DEF.bx));d.box=Math.floor(+d.box)||0;if(d.box<0||d.box>=d.bx.length)d.box=0;
  if(d.basis!=='box')d.basis='kg';return d}
-function smOf(s,loss,cull){const n=x=>{const v=+x;return isFinite(v)?v:0};const m=smState(s);cull=n(cull!=null?cull:s.cull);
- const b=m.bx[m.box],net=n(b[2]),tare=n(b[3]),cost=n(b[1]),oth=n(m.oth),price=n(m.price),share=Math.min(1,Math.max(0,n(m.p)));
- const cullT=cull<1?1000*cull/(1-cull):0;                       // كجم فرزة لكل طن صافي (زي calc: الفرزة ÷ الطن)
- const on=share>0&&net>0&&cullT>0;const kgT=on?cullT*share:0,boxes=on?kgT/net:0,gross=boxes*(net+tare);
- const rev=m.basis==='box'?boxes*price:gross*price,boxC=boxes*(cost+oth),old=kgT*n(s.cullP),gain=on?rev-boxC-old:0;
- return {on,m,name:String(b[0]||''),share,net,tare,cost,oth,price,basis:m.basis,cullT,kgT,boxes,gross,rev,boxC,old,gain,
-  perKg:kgT>0?(rev-boxC)/kgT:null,perBox:boxes>0?rev/boxes:null}}
+function smOf(s,loss,cull){const n=x=>{const v=+x;return isFinite(v)?v:0};const m=smState(s);loss=n(loss!=null?loss:s.loss);cull=n(cull!=null?cull:s.cull);
+ const b=m.bx[m.box],net=n(b[2]),tare=n(b[3]),cost=n(b[1]),oth=n(m.oth),price=n(m.price),share=Math.min(1,Math.max(0,n(m.p))),exp=1-cull-share;
+ const over=share>0&&exp<=1e-9;                                  // الفرزة + السوبرماركت ≥ 100% = مفيش تصدير
+ const on=share>0&&net>0&&!over&&loss<1;
+ const kgT=on?1000*share/exp:0,boxes=on?kgT/net:0,gross=boxes*(net+tare);   // كجم سوبرماركت لكل طن تصدير صافي
+ const rev=m.basis==='box'?boxes*price:gross*price,boxC=boxes*(cost+oth),netRev=rev-boxC,asCull=kgT*n(s.cullP);
+ const split={loss:loss,cull:(1-loss)*cull,sm:(1-loss)*share,exp:(1-loss)*Math.max(0,exp)};
+ return {on,over,m,name:String(b[0]||''),share,net,tare,cost,oth,price,basis:m.basis,kgT,boxes,gross,rev,boxC,netRev,asCull,gain:on?netRev-asCull:0,
+  perKg:kgT>0?netRev/kgT:null,perBox:boxes>0?rev/boxes:null,split}}
 /* سياق الحساب لوسيلة نقل — safi = بيانات الصوافي، costs = بيانات التكاليف، dec = إعدادات القرار */
 function ctx(safi,costs,dec,mode,over){over=over||{};const u=num(over.sar!=null?over.sar:safi.sar),E=num(over.egp!=null?over.egp:safi.egp);
  const c=(safi.clients||[]).find(x=>x[0]===safi.client);const comm=over.comm!=null?over.comm:(c?num(c[1]):0);
@@ -52,9 +54,9 @@ function ctx(safi,costs,dec,mode,over){over=over||{};const u=num(over.sar!=null?
  const expSar=(safi.exp||[]).reduce((a,x)=>a+num(br?x[1]:x[2]),0);
  const frSar=(br?num(safi.fB):num(safi.fC)*u)*fr;
  const loss=num(over.loss!=null?over.loss:costs.loss),cull=num(over.cull!=null?over.cull:costs.cull);
- const k=1000/((1-loss)*(1-cull));const cullCredit=num(costs.cullP)*k*(1-loss)*cull;const sm=smOf(costs,loss,cull),smGain=sm.on?sm.gain:0;const credit=cullCredit+smGain;
+ const sm=smOf(costs,loss,cull),smS=sm.on?sm.share:0;const k=1000/((1-loss)*(1-cull-smS));const cullCredit=num(costs.cullP)*k*(1-loss)*cull;const smCredit=sm.on?sm.netRev:0,smGain=sm.on?sm.gain:0;const credit=cullCredit+smCredit;
  const sup=(costs.sup||[]).reduce((a,x)=>a+num(x[1]),0);
- return {safi,costs,dec,mode,u,E,comm,expSar,frSar,sharedSar:expSar+frSar,sharedE:u?(expSar+frSar)/u*E:0,loss,cull,k,credit,cullCredit,smGain,sm,sup,pw:num(costs.pw),cap:num(dec.cap[mode]),
+ return {safi,costs,dec,mode,u,E,comm,expSar,frSar,sharedSar:expSar+frSar,sharedE:u?(expSar+frSar)/u*E:0,loss,cull,k,credit,cullCredit,smCredit,smGain,sm,sup,pw:num(costs.pw),cap:num(dec.cap[mode]),
   pAdd:num(over.pAdd||0),noClient:!c,frMissing:frSar===0}}
 function item(C,it){const w=pkW(C.safi,C.costs,it.pk),cpp=num(it.cpp),p=num(it.p)+C.pAdd,pr=pkRow(C.costs,it.pk),pk=pr?num(pr[1]):null,wash=washOf(C.costs,it.v);
  const ok=w>0&&cpp>0&&C.u>0;const tPal=ok?cpp*w/1000:0;
@@ -76,7 +78,7 @@ function scenario(safi,costs,dec,mode,i,over,span){span=span==null?7:span;const 
  const raw=num(costs.raw),x=item(C,it),p0=num(it.p);const base={ok:false,m:mode,i,v:it.v||'',sz:it.sz||'',pk:it.pk||'',p:p0,raw,span};if(!x.ok||!(C.cap>0))return base;
  const T=C.cap*x.tPal,egy=raw*C.k-C.credit+x.pkg+C.sup+(x.wash||0),share=T>0?C.sharedE/T:0;
  const rows=[];for(let d=-span;d<=span;d++){const p=p0+d;if(!(p>0))continue;const q=planBE(C,[Object.assign({},it,{p})],[C.cap]);const pr=q.profitAt(raw);rows.push({d,p,R:q.R,perTon:T>0?pr/T:null,perShip:pr})}
- return Object.assign(base,{ok:true,k:C.k,rawTon:raw*C.k,credit:C.credit,cullCredit:C.cullCredit,smGain:C.smGain,sm:C.sm,pkg:x.pkg,sup:C.sup,wash:x.wash||0,egy,share,expSar:C.expSar,frSar:C.frSar,comm:C.comm,
+ return Object.assign(base,{ok:true,k:C.k,rawTon:raw*C.k,credit:C.credit,cullCredit:C.cullCredit,smCredit:C.smCredit,smGain:C.smGain,sm:C.sm,pkg:x.pkg,sup:C.sup,wash:x.wash||0,egy,share,expSar:C.expSar,frSar:C.frSar,comm:C.comm,
   total:egy+share,rev:x.rev,T,cap:C.cap,cartons:C.cap*x.cpp,minP:priceForRaw(C,it,raw),rows})}
 /* القرار في الاتجاهين (حساب واحد لكل الصفحات والتقرير):
    ① أقل سعر بيع للكرتونة بالريال لكل صنف/عبوة على سعر الخام النهارده (الصنف مالي الشحنة، نفس priceForRaw)

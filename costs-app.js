@@ -49,11 +49,11 @@ function renderChips(){
  $('#pkgs').innerHTML=S.pk.map((p,i)=>'<button class="chip sm'+(i==S.pkg?' on':'')+'" data-p="'+i+'">'+esc(p[0])+'</button>').join('')}
 function errList(all){const L=[];Object.keys(ERR).forEach(k=>{if(!all&&k==='date')return;const a=k.split(':');let nm;
   if(k==='date')nm='تاريخ الحساب';else if(a[0]=='k')nm=RULES[a[1]][0];else if(a[0]=='pk')nm=(a[2]=='1'?'سعر ':'وزن ')+'«'+(S.pk[a[1]]||[''])[0]+'»';else if(a[0]=='sup')nm='بند «'+(S.sup[a[1]]||[''])[0]+'»';else if(a[0]=='sm')nm={p:'نسبة السوبرماركت من الفرزة',price:'سعر بيع السوبرماركت',oth:'مصاريف تانية للصندوق'}[a[1]]||'السوبرماركت';else if(a[0]=='smb'){const b=(SMON()?smState(S).bx[a[1]]:null)||[''];nm=(a[2]=='1'?'سعر ':a[2]=='2'?'صافي فاكهة ':'وزن ')+'«'+b[0]+'»'}else nm='غسيل «'+(S.var[a[1]]||[''])[0]+'»';
-  L.push(nm+': '+ERR[k])});return L}
+  L.push(nm+': '+ERR[k])});if(SMON()){const x=smOf(S);if(x.over)L.push('توزيع الخام: الفرزة '+f(S.cull*100,1)+'% + السوبرماركت '+f(x.share*100,1)+'% لازم أقل من 100% (وإلا مفيش تصدير)')}return L}
 
 /* ---------- العرض المباشر ---------- */
-function groups(r){return [[r.smGain!=null?'الخام (شامل الهالك والفرزة والسوبرماركت)':'الخام (شامل الهالك والفرزة)',r.rawT],['العبوة',r.pkgC],['مستلزمات الإنتاج',r.supT],['تكلفة المحطة (غسيل)',r.wash]]}
-function rows(r){return [['g','1) الخام'],['شراء الخام (1 طن)',r.buy],['تكلفة الهالك (فقد الوزن)',r.lossC],['تكلفة الفرزة (فرق السعر)',r.cullC],...(r.smGain!=null?[['محلي سوبرماركت (زيادة عن سعر الفرزة)',-r.smGain]]:[]),['s','إجمالي الخام',r.rawT],['g','2) العبوة'],[r.pkgName+' (شاملة هالك العبوات)',r.pkgC],['s','إجمالي العبوة',r.pkgC],['g','3) مستلزمات الإنتاج'],...S.sup.map(x=>[x[0],+x[1]]),['s','إجمالي المستلزمات',r.supT],['g','4) تكلفة المحطة'],['غسيل '+S.variety,r.wash],['s','إجمالي المحطة',r.wash]]}
+function groups(r){return [[r.smC!=null?'الخام (شامل الهالك والفرزة والسوبرماركت)':'الخام (شامل الهالك والفرزة)',r.rawT],['العبوة',r.pkgC],['مستلزمات الإنتاج',r.supT],['تكلفة المحطة (غسيل)',r.wash]]}
+function rows(r){return [['g','1) الخام'],['شراء الخام (1 طن)',r.buy],['تكلفة الهالك (فقد الوزن)',r.lossC],['تكلفة الفرزة (فرق السعر)',r.cullC],...(r.smC!=null?[['محلي سوبرماركت'+(r.sm.m.sizes?' مقاسات '+r.sm.m.sizes:'')+' (خامه − صافي بيعه)',r.smC]]:[]),['s','إجمالي الخام',r.rawT],['g','2) العبوة'],[r.pkgName+' (شاملة هالك العبوات)',r.pkgC],['s','إجمالي العبوة',r.pkgC],['g','3) مستلزمات الإنتاج'],...S.sup.map(x=>[x[0],+x[1]]),['s','إجمالي المستلزمات',r.supT],['g','4) تكلفة المحطة'],['غسيل '+S.variety,r.wash],['s','إجمالي المحطة',r.wash]]}
 function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.toggle('invalid',bad);
  $('#net').innerHTML=N(f(S.net/1000,1))+' طن · الدولار '+N(f(S.usd));
  const nv=$('#notice');const vOk=S.var.some(v=>v[0]===S.variety);nv.hidden=vOk;if(!vOk)nv.innerHTML='الصنف «'+esc(S.variety)+'» مش موجود في جدول الغسيل، فالغسيل محسوب صفر. اختار صنف من فوق.';
@@ -75,17 +75,18 @@ function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.t
  let b='<h2>التفاصيل <small>لكل طن صافي</small></h2><div class="bk"><table><tr class="h"><td>البند</td><td class="vh">ج / طن</td><td class="vh">$ / طن</td><td class="vh">%</td></tr>';
  rows(r).forEach(x=>{if(x[0]=='g')b+='<tr class="g"><td colspan="4">'+esc(x[1])+'</td></tr>';else{const s=x[0]=='s',n=s?x[1]:x[0],v=s?x[2]:x[1];b+='<tr'+(s?' class="s"':'')+'><td>'+esc(n)+'</td><td class="v">'+f(v)+'</td><td class="v">'+f(v/u)+'</td><td class="v">'+P(v/r.ton*100)+'</td></tr>'}});
  b+='<tr class="t"><td>إجمالي تكلفة الطن الصافي</td><td class="v">'+f(r.ton)+'</td><td class="v">'+f(r.ton/u)+'</td><td class="v">100%</td></tr></table>'+
-  '<div class="hint">الخام المطلوب للحاوية '+N(f(r.rawNeed))+' كجم · هالك '+N(f(r.lossKg))+' كجم · فرزة '+N(f(r.cullKg))+' كجم'+(r.smGain!=null?' (منها سوبرماركت '+N(f(r.smKg))+' كجم ≈ '+N(f(Math.ceil(r.smBoxes-1e-9),0))+' صندوق)':'')+' · عبوات معبأة '+N(f(r.packed,0))+' · مشتراة '+N(f(r.bought,0))+'</div></div>';
+  '<div class="hint">الخام المطلوب للحاوية '+N(f(r.rawNeed))+' كجم · هالك '+N(f(r.lossKg))+' كجم · فرزة '+N(f(r.cullKg))+' كجم'+(r.smC!=null?' · سوبرماركت '+N(f(r.smKg))+' كجم ≈ '+N(f(Math.ceil(r.smBoxes-1e-9),0))+' صندوق':'')+' · عبوات معبأة '+N(f(r.packed,0))+' · مشتراة '+N(f(r.bought,0))+'</div></div>';
  $('#detail').innerHTML=b;const st=$('#supTot');if(st)st.textContent=f(r.supT)+' ج'}
 function renderAll(){renderChips();renderInputs();renderTables();renderSM();renderLive();showSaved();$('#ver').textContent='· v'+VER}
 
-/* ---------- محلي سوبرماركت (v2.2.0) — جزء من الفرزة في صندوق بلاستيك بسعر أعلى شامل الصندوق ---------- */
+/* ---------- محلي سوبرماركت (v2.2.0) — فرزة مقاسات 100-113: مخرج لوحده من الخام، في صندوق بلاستيك، بسعر شامل وزن الصندوق ---------- */
 const SMB=v=>v==='box'?'ج / صندوق':'ج / كجم قائم';
+const BD=x=>'<bdi dir="ltr">'+x+'</bdi>';
 function smShown(k,v){const key='sm:'+k;return key in DR?DR[key]:v}
 function renderSM(){const host=$('#smCard');if(!host)return;if(!SMON()){host.hidden=true;return}const m=smState(S);
  const fld=(k,lab,val,u,cls,hint)=>'<div class="f'+(cls||'')+'"><label>'+lab+'</label><div class="in'+(ERR['sm:'+k]?' bad':'')+'"><input '+(k==='sizes'?'class="txt" ':'inputmode="decimal" ')+'data-sm="'+k+'" value="'+esc(smShown(k,val))+'">'+(u?'<span class="u">'+u+'</span>':'')+'</div>'+(ERR['sm:'+k]?'<div class="emsg" data-for="sm:'+k+'">'+esc(ERR['sm:'+k])+'</div>':'')+(hint?'<div class="hint">'+hint+'</div>':'')+'</div>';
- let h='<h2>محلي سوبرماركت <small>بدل جزء من الفرزة</small></h2><div class="grid">'+
-  fld('p','النسبة من الفرزة',+(m.p*100).toFixed(4),'%','','صفر = مقفول')+fld('sizes','المقاسات',m.sizes,'','','للعرض في التقرير')+
+ let h='<h2>محلي سوبرماركت <small>فرزة مقاسات صغيرة في صندوق</small></h2><div class="grid">'+
+  fld('p','نسبة السوبرماركت',+(m.p*100).toFixed(4),'%','','من الفاكهة بعد الهالك — زي الفرزة · صفر = مقفول')+fld('sizes','المقاسات',m.sizes,'','','للعرض في التقرير')+
   '<div class="f full"><label>نوع الصندوق</label><div class="in"><select class="smsel" data-sm="box">'+m.bx.map((b,i)=>'<option value="'+i+'"'+(i===m.box?' selected':'')+'>'+esc(b[0])+'</option>').join('')+'</select></div></div>'+
   fld('price','سعر البيع للسوبرماركت (شامل الصندوق)',m.price,'<select class="smu" data-sm="basis" aria-label="وحدة السعر"><option value="kg"'+(m.basis!=='box'?' selected':'')+'>ج / كجم قائم</option><option value="box"'+(m.basis==='box'?' selected':'')+'>ج / صندوق</option></select>',' full',m.basis==='box'?'سعر الصندوق كله بالفاكهة':'الكيلو القائم = فاكهة + وزن الصندوق الفاضي')+
   fld('oth','مصاريف تانية للصندوق',m.oth,'ج / صندوق',' full','نقل للسوبرماركت أو تعبئة أو ستيكر — لو مفيش سيبها صفر')+'</div>'+
@@ -95,22 +96,27 @@ function renderSM(){const host=$('#smCard');if(!host)return;if(!SMON()){host.hid
   '<button class="btn ghost wide" id="smAdd">+ نوع صندوق</button>';
  host.hidden=false;host.innerHTML=h;Object.keys(ERR).filter(k=>k.startsWith('smb:')).forEach(k=>{const el=host.querySelector('[data-smb="'+k.slice(4)+'"]');if(el)markBad(el,k)});
  if(window.__r)renderSMOut(window.__r)}
+function smSplit(x){const P=v=>BD(f(v*100,1)+'%');return '<div class="smsplit"><span>توزيع الخام:</span> تصدير '+P(x.split.exp)+' · فرزة '+P(x.split.cull)+' · سوبرماركت '+P(x.split.sm)+' · هالك '+P(x.split.loss)+' = '+BD('100%')+'</div>'}
 function renderSMOut(r){const o=$('#smOut');if(!o||!SMON())return;const x=r.sm||smOf(S),T=S.net/1000;
- if(!x.on){o.innerHTML='<div class="hint">مقفول — كل الفرزة ('+N(f(r.cullKg))+' كجم للحاوية) بتتباع فرزة بـ '+N(f(S.cullP))+' ج/كجم. اكتب النسبة عشان تشغّله.</div>';return}
+ if(x.over){o.innerHTML='<div class="emsg">الفرزة '+BD(f(S.cull*100,1)+'%')+' + السوبرماركت '+BD(f(x.share*100,1)+'%')+' لازم أقل من 100% — وإلا مفيش تصدير.</div>';return}
+ if(!x.on){o.innerHTML='<div class="hint">مقفول — النسبة صفر: الخام بيتوزع تصدير وفرزة وهالك بس. اكتب النسبة عشان تشغّله.</div>';return}
  const low=x.perKg!=null&&x.perKg<+S.cullP;
- o.innerHTML='<div class="smk"><span>التوفير عن بيعه فرزة</span><b'+(x.gain<0?' class="neg"':'')+'><bdi dir="ltr">'+f(x.gain)+'</bdi> ج / طن</b><em><bdi dir="ltr">'+f(x.gain*T)+'</bdi> ج / حاوية</em></div>'+
-  '<table class="smt"><tr><td>كمية السوبرماركت للحاوية</td><td class="sv"><bdi dir="ltr">'+f(r.smKg)+'</bdi> كجم</td></tr><tr><td>عدد الصناديق «'+esc(x.name)+'»</td><td class="sv"><bdi dir="ltr">'+f(r.smBoxes,1)+'</bdi></td></tr>'+
-  '<tr><td>الوزن القائم (فاكهة + صندوق '+f(x.tare,2)+' كجم)</td><td class="sv"><bdi dir="ltr">'+f(r.smGross)+'</bdi> كجم</td></tr><tr><td>إيراد السوبرماركت</td><td class="sv"><bdi dir="ltr">'+f(r.smRev)+'</bdi> ج</td></tr>'+
-  '<tr><td>الصناديق والمصاريف</td><td class="sv"><bdi dir="ltr">−'+f(r.smBoxC)+'</bdi> ج</td></tr><tr><td>لو اتباعت فرزة</td><td class="sv"><bdi dir="ltr">−'+f(x.old*T)+'</bdi> ج</td></tr>'+
-  '<tr class="s"><td>كيلو الفاكهة بعد الصندوق</td><td class="sv"><bdi dir="ltr">'+f(x.perKg)+'</bdi> ج <small>الفرزة <bdi dir="ltr">'+f(S.cullP)+'</bdi> ج</small></td></tr></table>'+
-  (low?'<div class="emsg">السعر ده بعد الصندوق أقل من سعر الفرزة — بيزوّد التكلفة.</div>':'')}
-function smRep(r,T){if(r.smGain==null)return '';const x=r.sm;
- return '<h3>محلي سوبرماركت (بدل جزء من الفرزة)</h3><table class="rt q"><tbody><tr><td>النسبة من الفرزة</td><td class="q2"><span class="ltr">'+f(x.share*100,1)+'%</span>'+(x.m.sizes?' — مقاس '+esc(x.m.sizes):'')+'</td><td>الكمية</td><td class="q2"><span class="ltr">'+f(r.smKg)+'</span> كجم</td></tr>'+
-  '<tr><td>الصندوق</td><td class="q2">'+esc(x.name)+' — <span class="ltr">'+f(x.cost)+'</span> ج</td><td>عدد الصناديق</td><td class="q2"><span class="ltr">'+f(r.smBoxes,1)+'</span></td></tr>'+
-  '<tr><td>صافي / وزن الصندوق</td><td class="q2"><span class="ltr">'+f(x.net,1)+'</span> / <span class="ltr">'+f(x.tare,2)+'</span> كجم</td><td>الوزن القائم</td><td class="q2"><span class="ltr">'+f(r.smGross)+'</span> كجم</td></tr>'+
-  '<tr><td>سعر البيع</td><td class="q2"><span class="ltr">'+f(x.price)+'</span> '+SMB(x.basis)+'</td><td>إيراد السوبرماركت</td><td class="q2"><span class="ltr">'+f(r.smRev)+'</span> ج</td></tr>'+
-  '<tr><td>الصناديق والمصاريف</td><td class="q2"><span class="ltr">'+f(r.smBoxC)+'</span> ج</td><td>لو اتباعت فرزة</td><td class="q2"><span class="ltr">'+f(x.old*T)+'</span> ج</td></tr>'+
-  '<tr><td>كيلو الفاكهة بعد الصندوق</td><td class="q2"><span class="ltr">'+f(x.perKg)+'</span> ج</td><td>التوفير</td><td class="q2"><span class="ltr">'+f(r.smGain)+'</span> ج/طن — <span class="ltr">'+f(r.smGain*T)+'</span> ج/حاوية</td></tr></tbody></table>'}
+ o.innerHTML=smSplit(x)+'<div class="smk"><span>صافي كيلو السوبرماركت بعد الصندوق</span><b>'+BD(f(x.perKg))+' ج / كجم</b><em>الفرزة '+BD(f(S.cullP))+' ج · الخام '+BD(f(S.raw))+' ج</em></div>'+
+  '<table class="smt"><tr><td>كمية السوبرماركت للحاوية</td><td class="sv">'+BD(f(r.smKg))+' كجم</td></tr><tr><td>عدد الصناديق «'+esc(x.name)+'»</td><td class="sv">'+BD(f(r.smBoxes,1))+'</td></tr>'+
+  '<tr><td>الوزن القائم (فاكهة + صندوق '+BD(f(x.tare,2))+' كجم)</td><td class="sv">'+BD(f(r.smGross))+' كجم</td></tr><tr><td>إيراد السوبرماركت</td><td class="sv">'+BD(f(r.smRev))+' ج</td></tr>'+
+  '<tr><td>الصناديق والمصاريف</td><td class="sv">'+BD('−'+f(r.smBoxC))+' ج</td></tr><tr class="s"><td>صافي بيع السوبرماركت</td><td class="sv">'+BD(f(r.smNet))+' ج</td></tr>'+
+  '<tr><td>تكلفة السوبرماركت في الطن <small>خامه − صافي بيعه</small></td><td class="sv">'+BD(f(r.smC))+' ج / طن</td></tr>'+
+  '<tr><td>الفرق عن بيعه فرزة</td><td class="sv">'+BD((x.gain>=0?'+':'−')+f(Math.abs(x.gain)))+' ج / طن <small>'+(x.gain>=0?'السوبرماركت أحسن':'الفرزة أحسن')+'</small></td></tr></table>'+
+  (low?'<div class="emsg">صافي الكيلو بعد الصندوق أقل من سعر الفرزة — بيعه فرزة أحسن.</div>':'')}
+function smRep(r,T){if(r.smC==null)return '';const x=r.sm;const L=v=>'<span class="ltr">'+v+'</span>';
+ return '<h3>محلي سوبرماركت'+(x.m.sizes?' — مقاسات '+esc(x.m.sizes):'')+'</h3><table class="rt q"><tbody>'+
+  '<tr><td>النسبة من الفاكهة بعد الهالك</td><td class="q2">'+L(f(x.share*100,1)+'%')+'</td><td>توزيع الخام</td><td class="q2">تصدير '+L(f(x.split.exp*100,1)+'%')+' · فرزة '+L(f(x.split.cull*100,1)+'%')+' · سوبرماركت '+L(f(x.split.sm*100,1)+'%')+' · هالك '+L(f(x.split.loss*100,1)+'%')+'</td></tr>'+
+  '<tr><td>الكمية</td><td class="q2">'+L(f(r.smKg))+' كجم</td><td>الصندوق</td><td class="q2">'+esc(x.name)+' — '+L(f(x.cost))+' ج</td></tr>'+
+  '<tr><td>عدد الصناديق</td><td class="q2">'+L(f(r.smBoxes,1))+'</td><td>صافي / وزن الصندوق</td><td class="q2">'+L(f(x.net,1))+' / '+L(f(x.tare,2))+' كجم</td></tr>'+
+  '<tr><td>الوزن القائم</td><td class="q2">'+L(f(r.smGross))+' كجم</td><td>سعر البيع</td><td class="q2">'+L(f(x.price))+' '+SMB(x.basis)+'</td></tr>'+
+  '<tr><td>إيراد السوبرماركت</td><td class="q2">'+L(f(r.smRev))+' ج</td><td>الصناديق والمصاريف</td><td class="q2">'+L(f(r.smBoxC))+' ج</td></tr>'+
+  '<tr><td>صافي بيع السوبرماركت</td><td class="q2">'+L(f(r.smNet))+' ج — '+L(f(x.perKg))+' ج/كجم</td><td>تكلفته في الطن</td><td class="q2">'+L(f(r.smC))+' ج/طن</td></tr>'+
+  '<tr><td>مقارنة ببيعه فرزة</td><td class="q2" colspan="3">'+L((x.gain>=0?'+':'−')+f(Math.abs(x.gain)))+' ج/طن — '+L((x.gain>=0?'+':'−')+f(Math.abs(x.gain*T)))+' ج/حاوية '+(x.gain>=0?'لصالح السوبرماركت':'لصالح الفرزة')+'</td></tr></tbody></table>'}
 function smSet(fn){if(!SMON())return;const m=smState(S);fn(m);S.sm=m}
 document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!SMON())return;
  if(t.dataset.sm&&t.tagName==='INPUT'){const k=t.dataset.sm,key='sm:'+k;
@@ -175,16 +181,16 @@ function reportHtml(){const r=CALC(S),u=S.usd,T=S.net/1000,G=groups(r),pages=REP
  G.map(g=>R6(g[0],g[1])).join('')+R6('الإجمالي',r.ton,'gt')+'</tbody></table><div class="note">الأربع مجموعات مجموعها = تكلفة الطن الصافي ظهر الحاوية.</div>'+
  '<h3>مقارنة العبوات — تكلفة الطن الصافي</h3><table class="rt"><thead><tr><th>العبوة</th><th>ج / طن</th><th>$ / طن</th><th>ريال / عبوة</th><th>الفرق عن الأرخص $</th></tr></thead><tbody>'+
  r.cmp.map((x,i)=>'<tr'+(x.n==r.pkgName?' class="sel"':'')+'><td>'+esc(x.n)+'</td><td class="n">'+f(x.v)+'</td><td class="n">'+f(x.v/u)+'</td><td class="n">'+f(x.v/1000*S.pk[i][2]/u*S.sar)+'</td><td class="n">'+(x.d<1e-9?'الأرخص':'+'+f(x.d))+'</td></tr>').join('')+
- '</tbody></table><div class="note">الفرق محسوب بالدولار للطن مقارنة بأرخص عبوة؛ كل العبوات بنفس الخام والمستلزمات والغسيل.'+(pages>1?' التفاصيل في الصفحة التالية.':'')+'</div>'+(r.smGain!=null?'<div class="note">يشمل محلي سوبرماركت: '+f(r.sm.share*100,1)+'% من الفرزة'+(r.sm.m.sizes?' (مقاس '+esc(r.sm.m.sizes)+')':'')+' في «'+esc(r.sm.name)+'» — وفّر '+f(r.smGain)+' ج / طن ('+f(r.smGain*T)+' ج / حاوية) عن بيعه فرزة.</div>':'')+'</div>'+foot(1)+'</div>';
+ '</tbody></table><div class="note">الفرق محسوب بالدولار للطن مقارنة بأرخص عبوة؛ كل العبوات بنفس الخام والمستلزمات والغسيل.'+(pages>1?' التفاصيل في الصفحة التالية.':'')+'</div>'+(r.smC!=null?'<div class="note">يشمل محلي سوبرماركت'+(r.sm.m.sizes?' مقاسات '+esc(r.sm.m.sizes):'')+': '+f(r.sm.share*100,1)+'% من الفاكهة بعد الهالك في «'+esc(r.sm.name)+'» بسعر '+f(r.sm.price)+' '+SMB(r.sm.basis)+' — التصدير '+f(r.sm.split.exp*100,1)+'% من الخام. التفاصيل في الصفحة التالية.</div>':'')+'</div>'+foot(1)+'</div>';
  if(pages==1)return [p1];
  let d='';rows(r).forEach(x=>{if(x[0]=='g')d+='<tr class="gh"><td colspan="6">'+esc(x[1])+'</td></tr>';else{const s=x[0]=='s';d+=R6(s?x[1]:x[0],s?x[2]:x[1],s?'st':'')}});
  const p2='<div class="page"><div class="pc">'+head('تفاصيل تكلفة طن '+esc(S.variety)+' والحاوية')+
  '<h3>التفاصيل</h3><table class="rt"><thead><tr><th>البند</th><th>ج / طن</th><th>$ / طن</th><th>ج / حاوية</th><th>$ / حاوية</th><th>%</th></tr></thead><tbody>'+d+
  '<tr class="gt"><td>إجمالي تكلفة الطن الصافي</td><td class="n">'+f(r.ton)+'</td><td class="n">'+f(r.ton/u)+'</td><td class="n">'+f(r.cont)+'</td><td class="n">'+f(r.cont/u)+'</td><td class="n">100%</td></tr></tbody></table>'+
  '<div class="note">الإجمالي = الخام + العبوة + المستلزمات + غسيل المحطة، لكل طن صافي داخل العبوات؛ الحاوية = الطن × '+f(T,1)+' طن.</div>'+
- '<h3>الكميات للحاوية</h3><table class="rt q"><tbody><tr><td>الصافي في العبوات</td><td class="q2"><span class="ltr">'+f(S.net,0)+'</span> كجم</td><td>الخام المطلوب</td><td class="q2"><span class="ltr">'+f(r.rawNeed)+'</span> كجم</td></tr><tr><td>الهالك</td><td class="q2"><span class="ltr">'+f(r.lossKg)+'</span> كجم</td><td>'+(r.smGain!=null?'الفرزة الباقية للمحلي':'الفرزة للمحلي')+'</td><td class="q2"><span class="ltr">'+f(r.smGain!=null?r.cullLeftKg:r.cullKg)+'</span> كجم</td></tr><tr><td>'+(r.smGain!=null?'قيمة بيع الفرزة الباقية':'قيمة بيع الفرزة')+'</td><td class="q2"><span class="ltr">'+f(r.cullSale)+'</span> ج</td><td>وزن العبوة</td><td class="q2"><span class="ltr">'+f(r.pkgW,1)+'</span> كجم</td></tr><tr><td>العبوات المعبأة</td><td class="q2"><span class="ltr">'+f(r.packed,0)+'</span></td><td>العبوات المطلوب شراؤها</td><td class="q2"><span class="ltr">'+f(r.bought,0)+'</span></td></tr></tbody></table>'+
+ '<h3>الكميات للحاوية</h3><table class="rt q"><tbody><tr><td>الصافي في العبوات</td><td class="q2"><span class="ltr">'+f(S.net,0)+'</span> كجم</td><td>الخام المطلوب</td><td class="q2"><span class="ltr">'+f(r.rawNeed)+'</span> كجم</td></tr><tr><td>الهالك</td><td class="q2"><span class="ltr">'+f(r.lossKg)+'</span> كجم</td><td>الفرزة للمحلي</td><td class="q2"><span class="ltr">'+f(r.cullKg)+'</span> كجم</td></tr><tr><td>قيمة بيع الفرزة</td><td class="q2"><span class="ltr">'+f(r.cullSale)+'</span> ج</td><td>وزن العبوة</td><td class="q2"><span class="ltr">'+f(r.pkgW,1)+'</span> كجم</td></tr><tr><td>العبوات المعبأة</td><td class="q2"><span class="ltr">'+f(r.packed,0)+'</span></td><td>العبوات المطلوب شراؤها</td><td class="q2"><span class="ltr">'+f(r.bought,0)+'</span></td></tr></tbody></table>'+
  smRep(r,T)+'<div class="note">العبوات المعبأة = الصافي ÷ وزن العبوة مقرّب لأعلى؛ المشتراة = المعبأة × (1 + <span class="ltr">'+f(S.pw*100,1)+'%</span>) مقرّب لأعلى.</div>'+
- '<h3>طريقة الحساب</h3><ul><li>الخام المطلوب = الصافي ÷ ((1 − الهالك <span class="ltr">'+f(S.loss*100,1)+'%</span>) × (1 − الفرزة <span class="ltr">'+f(S.cull*100,1)+'%</span>)).</li><li>تكلفة الفرزة = وزنها × (سعر الخام '+f(S.raw)+' − سعر بيعها '+f(S.cullP)+').</li>'+(r.smGain!=null?'<li>محلي سوبرماركت = '+f(r.sm.share*100,1)+'% من الفرزة في «'+esc(r.sm.name)+'»؛ الزيادة = إيراده − الصناديق والمصاريف − قيمته لو اتباع فرزة، وبتتخصم من تكلفة الخام.</li>':'')+'<li>سعر الخام واصل المحطة، فلا يوجد بند نقل خام.</li><li>التكلفة للمنتج محمّلًا على الحاوية في المحطة، بدون نقل للميناء أو شحن.</li></ul></div>'+foot(2)+'</div>';
+ '<h3>طريقة الحساب</h3><ul><li>الخام المطلوب = الصافي ÷ ((1 − الهالك <span class="ltr">'+f(S.loss*100,1)+'%</span>) × (1 − الفرزة <span class="ltr">'+f(S.cull*100,1)+'%</span>'+(r.smC!=null?' − السوبرماركت <span class="ltr">'+f(r.sm.share*100,1)+'%</span>':'')+')).</li><li>تكلفة الفرزة = وزنها × (سعر الخام '+f(S.raw)+' − سعر بيعها '+f(S.cullP)+').</li>'+(r.smC!=null?'<li>محلي سوبرماركت = '+f(r.sm.share*100,1)+'% من الفاكهة بعد الهالك (مخرج لوحده، الفرزة زي ما هي)؛ إيراده = '+(r.sm.basis==='box'?'عدد الصناديق × سعر الصندوق':'الوزن القائم (فاكهة + وزن الصندوق) × السعر')+'؛ تكلفته = خامه بسعر الخام − (إيراده − الصناديق والمصاريف).</li>':'')+'<li>سعر الخام واصل المحطة، فلا يوجد بند نقل خام.</li><li>التكلفة للمنتج محمّلًا على الحاوية في المحطة، بدون نقل للميناء أو شحن.</li></ul></div>'+foot(2)+'</div>';
  return [p1,p2]}
 function shrink(root){root.querySelectorAll('.page').forEach(pg=>{const pc=pg.querySelector('.pc');pc.style.transform='';pc.style.width='';const avail=1123-36-62;let h=pc.offsetHeight;if(h>avail){let s=Math.max(0.55,avail/h);pc.style.width=(706/s)+'px';h=pc.offsetHeight;s=Math.max(0.55,avail/h);pc.style.width=(706/s)+'px';pc.style.transformOrigin='top right';pc.style.transform='scale('+s+')'}})}
 function buildPages(){$('#rep').hidden=false;$('#pages').innerHTML=reportHtml().map(p=>'<div class="pagewrap">'+p+'</div>').join('');shrink($('#pages'))}

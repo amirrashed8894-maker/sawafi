@@ -144,3 +144,5 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .smt td.sv{text-align:left;white-space:nowrap;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
 .smt td.sv small{display:block;font-weight:500;color:var(--mut);font-size:12px}
 .smt tr.s td{font-weight:800;border-top:1.5px solid var(--ink)}
+.smsplit{font-size:13.5px;color:var(--ink2);background:#fff;border:1px dashed #cfcfcf;border-radius:10px;padding:8px 10px;margin-bottom:8px;line-height:1.7}
+.smsplit span{font-weight:800;color:var(--ink)}
