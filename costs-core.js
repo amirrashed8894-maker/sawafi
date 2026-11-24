@@ -41,5 +41,27 @@ function checkVal(raw,rule,opt){var t=String(raw==null?'':raw).trim();if(t==='')
   return ''}
 /* القيمة اللي بتتخزن في S بنفس شكل البرنامج الأصلي: (+قيمة||0) والنسب ÷ 100 */
 function toStore(raw,pct){var t=String(raw==null?'':raw).trim();var x=t===''?0:parseNum(t);return pct?(x||0)/100:(x||0)}
-var CORE={DEF:DEF,calc:calc,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore};
+/* ---------- محلي سوبرماركت (v2.2.0، طلب أمير 24/11/2026) ----------
+   جزء من الفرزة (مقاسات صغيرة زي 100 و 113) بيتعبّى في صندوق بلاستيك ويتباع محلي سوبرماركت بسعر أعلى شامل الصندوق.
+   calc() الأصلية ما اتلمستش: calcX = calc + «زيادة السوبرماركت عن الفرزة» لكل طن صافي. لو النسبة صفر النتيجة هي calc بالظبط.
+   S.sm = {p: نسبة من الفرزة (0..1)، price: سعر البيع، basis: 'kg' ج/كجم قائم (فاكهة + وزن الصندوق) أو 'box' ج/صندوق،
+           box: رقم نوع الصندوق، bx: [[الاسم، سعر الصندوق ج، صافي الفاكهة كجم، وزن الصندوق فاضي كجم]...]، oth: مصاريف تانية ج/صندوق، sizes: نص}
+   نفس المعادلة في be-core.js (BE.smOf) — test/sm.test.js بيطابقهم. */
+const SM_DEF={p:0,price:12,basis:'kg',box:0,oth:0,sizes:'100، 113',bx:[['صندوق جامبو 15 كجم',18,15,1.2],['صندوق بلاستيك 8 كجم',13.5,7.5,0.8]]};
+function smState(s){const d=JSON.parse(JSON.stringify(SM_DEF)),o=s&&s.sm;
+ if(o&&typeof o==='object'){for(const k in d)if(o[k]!==undefined&&o[k]!==null&&Array.isArray(d[k])===Array.isArray(o[k]))d[k]=o[k]}
+ d.bx=(d.bx||[]).filter(b=>Array.isArray(b));if(!d.bx.length)d.bx=JSON.parse(JSON.stringify(SM_DEF.bx));d.box=Math.floor(+d.box)||0;if(d.box<0||d.box>=d.bx.length)d.box=0;
+ if(d.basis!=='box')d.basis='kg';return d}
+function smOf(s,loss,cull){const n=x=>{const v=+x;return isFinite(v)?v:0};const m=smState(s);cull=n(cull!=null?cull:s.cull);
+ const b=m.bx[m.box],net=n(b[2]),tare=n(b[3]),cost=n(b[1]),oth=n(m.oth),price=n(m.price),share=Math.min(1,Math.max(0,n(m.p)));
+ const cullT=cull<1?1000*cull/(1-cull):0;                       // كجم فرزة لكل طن صافي (زي calc: الفرزة ÷ الطن)
+ const on=share>0&&net>0&&cullT>0;const kgT=on?cullT*share:0,boxes=on?kgT/net:0,gross=boxes*(net+tare);
+ const rev=m.basis==='box'?boxes*price:gross*price,boxC=boxes*(cost+oth),old=kgT*n(s.cullP),gain=on?rev-boxC-old:0;
+ return {on,m,name:String(b[0]||''),share,net,tare,cost,oth,price,basis:m.basis,cullT,kgT,boxes,gross,rev,boxC,old,gain,
+  perKg:kgT>0?(rev-boxC)/kgT:null,perBox:boxes>0?rev/boxes:null}}
+function calcX(s){const r=calc(s),x=smOf(s);r.sm=x;if(!x.on)return r;const T=s.net/1000,g=x.gain;
+ r.smGain=g;r.rawT-=g;r.ton-=g;r.kg=r.ton/1000;r.perPkg=r.kg*r.pkgW;r.cont=r.ton*T;
+ r.smKg=x.kgT*T;r.smBoxes=x.boxes*T;r.smGross=x.gross*T;r.smRev=x.rev*T;r.smBoxC=x.boxC*T;r.cullLeftKg=r.cullKg-r.smKg;r.cullSale=r.cullLeftKg*s.cullP;
+ r.cmp.forEach(c=>c.v-=g);return r}
+var CORE={DEF:DEF,calc:calc,calcX:calcX,smOf:smOf,smState:smState,SM_DEF:SM_DEF,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore};
 if(typeof module!=='undefined')module.exports=CORE;

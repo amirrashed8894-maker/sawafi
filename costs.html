@@ -136,6 +136,29 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .page ul{list-style:none;padding-inline-start:4px}.page ul li:before{content:'•';margin-inline-end:6px;font-weight:900}
 .bk td.vh{text-align:left;white-space:nowrap}
 .repbar{gap:6px;padding-left:8px;padding-right:8px}.repbar .btn{font-size:14px;padding:9px 4px;white-space:nowrap}
+
+/* محلي سوبرماركت v2.2.0 (الشاشة بس) */
+.smcard select{font:inherit;font-size:16px;font-weight:700;border:0;outline:0;background:transparent;padding:9px 10px;width:100%;color:var(--ink)}
+.smcard .f .u select.smu{font-size:16px;font-weight:700;color:var(--ink2);padding:4px 0;width:auto}
+.smcard .smh{font-size:15px;font-weight:800;margin:14px 0 8px;border-top:1px solid var(--line);padding-top:12px}
+.smcard .trow.sm4{grid-template-columns:repeat(3,minmax(0,1fr)) 38px}
+.smcard .trow.sm4 .x{border:0;background:var(--soft);border-radius:10px;height:38px;font-size:20px;color:var(--ink2);cursor:pointer}
+.smcard .trow.sm4 .x[disabled]{opacity:.35}
+.smcard .smrow{border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:8px}
+.smcard .smrow input.nm{font:inherit;width:100%;box-sizing:border-box;border:1.5px solid #d6d6d6;border-radius:10px;padding:8px 10px;font-size:16px;font-weight:700;margin-bottom:6px;outline:0}
+.smcard .smrow input.nm.bad{border:2px solid #111;background:#e6e6e6}
+.smcard .smrow .trow{margin-bottom:0}
+.smout{margin-top:12px}
+.smk{background:var(--soft);border-radius:12px;padding:10px;text-align:center;margin-bottom:8px}
+.smk span{display:block;font-size:13px;color:var(--mut)}
+.smk b{display:block;font-size:22px;font-weight:800}
+.smk b.neg{text-decoration:underline}
+.smk em{display:block;font-style:normal;font-size:14px;color:var(--ink2);font-weight:600}
+.smt{width:100%;border-collapse:collapse;font-size:14.5px}
+.smt td{padding:6px 4px;border-bottom:1px solid var(--line)}
+.smt td.sv{text-align:left;white-space:nowrap;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.smt td.sv small{display:block;font-weight:500;color:var(--mut);font-size:12px}
+.smt tr.s td{font-weight:800;border-top:1.5px solid var(--ink)}
 </style>
 <style>/* «القرار في الاتجاهين» — الشاشة بس */
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
@@ -192,6 +215,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
   <h2>بيانات الحساب</h2>
   <div class="grid" id="inputs"></div>
  </section>
+ <section class="card smcard" id="smCard" hidden></section>
  <section class="card" id="detail"></section>
  <section class="card">
   <h2>أسعار العبوات</h2>
@@ -225,15 +249,15 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 </div>
 <div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
 <script src="nav.js?v=200"></script>
-<script src="costs-core.js?v=200"></script>
+<script src="costs-core.js?v=220"></script>
 <script src="pdf-share.js"></script>
-<script src="costs-app.js?v=200"></script>
-<script src="be-core.js?v=211"></script>
+<script src="costs-app.js?v=220"></script>
+<script src="be-core.js?v=220"></script>
 <script src="costs-io.js?v=200"></script>
 <script src="exp-migrate.js?v=201"></script>
 <script src="safi-fresh.js?v=210"></script>
-<script src="be-two.js?v=210"></script>
-<script src="costs-two.js?v=210"></script>
+<script src="be-two.js?v=220"></script>
+<script src="costs-two.js?v=220"></script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>

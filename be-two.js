@@ -1,4 +1,4 @@
-/* الصوافي والتكاليف v2.1.0 — «القرار في الاتجاهين»: عرض واحد مشترك للصفحة الرئيسية وقسم التكاليف (الشاشة بس).
+/* الصوافي والتكاليف v2.1.0 (v2.2.0: سطر محلي سوبرماركت في ③ لو مستخدم) — «القرار في الاتجاهين»: عرض واحد مشترك للصفحة الرئيسية وقسم التكاليف (الشاشة بس).
    ① أقل سعر بيع للكرتونة بالريال لكل صنف على سعر الخام النهارده  ② أعلى سعر لشراء الخام ج/كجم على أسعار البيع.
    الحساب كله من BE.twoWay (be-core.js) — نفس الأرقام في كل مكان. */
 (function(root){'use strict';
@@ -28,7 +28,7 @@ function html(tw,o){o=o||{};const A=tw.base,B=tw.sec,raw=tw.raw;const its=A.item
    '<table class="two-t"><tr class="h"><td>الصنف · العبوة</td><td class="vh">'+modeName(A.m)+'</td><td class="vh">'+modeName(B.m)+'</td><td class="vh">سعرك</td></tr>'+(rows||'<tr><td colspan="4">مفيش أصناف</td></tr>')+'</table>'+
    '<div class="hint">ريال/كرتونة. أقل سعر = اللي يخلّي ربح شحنة مالية من الصنف ده صفر على سعر الخام ده (بعد العمولة ومصروفات السعودية والنولون وتكاليف مصر).</div></div>'+
   '<div class="two-p" id="twoBuy"><div class="two-h"><b>② سعر التعادل لشراء الخام</b><span>أعلى سعر لشراء الخام ج/كجم واصل المحطة — على أسعار البيع وخطة الباليتات</span></div>'+
-   '<div class="two-ks">'+big(A,true)+big(B,false)+'</div>'+alone+'</div>'+
+   '<div class="two-ks">'+big(A,true)+big(B,false)+'</div>'+(A.C&&A.C.smGain?'<div class="hint two-sm">شامل محلي سوبرماركت '+nf(A.C.sm.share*100,0)+'% من الفرزة — بيوفّر '+N(A.C.smGain,0)+' ج/طن عن بيعه فرزة (من التكاليف).</div>':'')+alone+'</div>'+
   '<div class="two-sc">'+scenHTML(tw,{compact:o.compact,id:o.compact?'scenCosts':'scen'})+'</div>'+
   (o.compact?'<a class="lnk two-edit" href="index.html">الأسعار والخطة من «القرار» ←</a>':'')+'</div>'}
 /* ③ مربع التكاليف وأسعار البيع والسيناريوهات (كل ريال فوق وتحت لحد 7): صنف/عبوة + الحاوية/البراد بأزرار */
@@ -37,7 +37,7 @@ const sg=v=>v==null||!isFinite(v)?'—':(v>=0?'+':'−')+nf(Math.abs(v),0);
 function scenPanel(s,o){if(!s||!s.ok)return '<div class="hint">اكتب العبوة وكراتين الباليت وسعر البيع للصنف ده.</div>';
  const cost='<table class="two-t sc-c"><tr class="h"><td>التكاليف لكل طن صافي</td><td class="vh">ج/طن</td></tr>'+
   '<tr><td>الخام <small>'+nf(s.raw)+' ج/كجم × '+nf(s.k,1)+' كجم</small></td><td class="vh num">'+nf(s.rawTon,0)+'</td></tr>'+
-  '<tr><td>الفرزة المباعة</td><td class="vh num">−'+nf(s.credit,0)+'</td></tr>'+
+  (s.smGain?'<tr><td>الفرزة المباعة</td><td class="vh num">−'+nf(s.cullCredit,0)+'</td></tr><tr><td>محلي سوبرماركت <small>'+nf(s.sm.share*100,0)+'% من الفرزة · زيادة عن الفرزة</small></td><td class="vh num">'+(s.smGain>=0?'−':'+')+nf(Math.abs(s.smGain),0)+'</td></tr>':'<tr><td>الفرزة المباعة</td><td class="vh num">−'+nf(s.credit,0)+'</td></tr>')+
   '<tr><td>العبوات + المستلزمات + الغسيل</td><td class="vh num">'+nf(s.pkg+s.sup+s.wash,0)+'</td></tr>'+
   '<tr class="s"><td>تكاليف مصر</td><td class="vh num">'+nf(s.egy,0)+'</td></tr>'+
   '<tr><td>مصروفات السعودية + النولون <small>'+nf(s.expSar,0)+' + '+nf(s.frSar,0)+' ريال ÷ '+nf(s.T,2)+' طن</small></td><td class="vh num">'+nf(s.share,0)+'</td></tr>'+

@@ -1,4 +1,4 @@
-/* الصوافي والتكاليف v2.0.0 — محرك «قرار شراء الخام» (بحوث العمليات). دوال حسابية بحتة، من غير DOM ولا نت.
+/* الصوافي والتكاليف v2.2.0 (محلي سوبرماركت بدل جزء من الفرزة: الفرزة المباعة + زيادة السوبرماركت) — v2.0.0: محرك «قرار شراء الخام» (بحوث العمليات). دوال حسابية بحتة، من غير DOM ولا نت.
    بيقرا مباشرة من بيانات قسم الصوافي (safiNetback.v2) وقسم التكاليف (citrusCosts.v2) على نفس الموقع، ومن إعدادات القرار (decision.v1).
    ما بيلمسش calc() بتاعة الصوافي ولا بتاعة التكاليف — بيطابقهم بالظبط (test/be.test.js).
    تكلفة الطن الصافي (calc التكاليف): خام×k − فرزة مباعة محلي + عبوات + مستلزمات + غسيل،  k = 1000 ÷ ((1−هالك)×(1−فرزة))
@@ -32,6 +32,19 @@ function washOf(C,v){const n=norm(v),W=C.var||[];const hit=t=>W.find(w=>norm(w[0
  return w?num(w[1]):null}
 function pkRow(C,name){return (C.pk||[]).find(x=>x[0]===name)||(C.pk||[]).find(x=>norm(x[0])===norm(name))||null}
 function pkW(safi,costs,name){const p=(safi.pk||[]).find(x=>x[0]===name);if(p&&+p[1]>0)return +p[1];const c=pkRow(costs,name);if(c&&+c[2]>0)return +c[2];const m=String(name||'').match(/(\d+(?:\.\d+)?)\s*ك/);return m?+m[1]:0}
+/* محلي سوبرماركت v2.2.0 — نسخة حرفية من costs-core.js (test/sm.test.js بيتأكد إنها نفس الكود ونفس النتيجة) */
+const SM_DEF={p:0,price:12,basis:'kg',box:0,oth:0,sizes:'100، 113',bx:[['صندوق جامبو 15 كجم',18,15,1.2],['صندوق بلاستيك 8 كجم',13.5,7.5,0.8]]};
+function smState(s){const d=JSON.parse(JSON.stringify(SM_DEF)),o=s&&s.sm;
+ if(o&&typeof o==='object'){for(const k in d)if(o[k]!==undefined&&o[k]!==null&&Array.isArray(d[k])===Array.isArray(o[k]))d[k]=o[k]}
+ d.bx=(d.bx||[]).filter(b=>Array.isArray(b));if(!d.bx.length)d.bx=JSON.parse(JSON.stringify(SM_DEF.bx));d.box=Math.floor(+d.box)||0;if(d.box<0||d.box>=d.bx.length)d.box=0;
+ if(d.basis!=='box')d.basis='kg';return d}
+function smOf(s,loss,cull){const n=x=>{const v=+x;return isFinite(v)?v:0};const m=smState(s);cull=n(cull!=null?cull:s.cull);
+ const b=m.bx[m.box],net=n(b[2]),tare=n(b[3]),cost=n(b[1]),oth=n(m.oth),price=n(m.price),share=Math.min(1,Math.max(0,n(m.p)));
+ const cullT=cull<1?1000*cull/(1-cull):0;                       // كجم فرزة لكل طن صافي (زي calc: الفرزة ÷ الطن)
+ const on=share>0&&net>0&&cullT>0;const kgT=on?cullT*share:0,boxes=on?kgT/net:0,gross=boxes*(net+tare);
+ const rev=m.basis==='box'?boxes*price:gross*price,boxC=boxes*(cost+oth),old=kgT*n(s.cullP),gain=on?rev-boxC-old:0;
+ return {on,m,name:String(b[0]||''),share,net,tare,cost,oth,price,basis:m.basis,cullT,kgT,boxes,gross,rev,boxC,old,gain,
+  perKg:kgT>0?(rev-boxC)/kgT:null,perBox:boxes>0?rev/boxes:null}}
 /* سياق الحساب لوسيلة نقل — safi = بيانات الصوافي، costs = بيانات التكاليف، dec = إعدادات القرار */
 function ctx(safi,costs,dec,mode,over){over=over||{};const u=num(over.sar!=null?over.sar:safi.sar),E=num(over.egp!=null?over.egp:safi.egp);
  const c=(safi.clients||[]).find(x=>x[0]===safi.client);const comm=over.comm!=null?over.comm:(c?num(c[1]):0);
@@ -39,9 +52,9 @@ function ctx(safi,costs,dec,mode,over){over=over||{};const u=num(over.sar!=null?
  const expSar=(safi.exp||[]).reduce((a,x)=>a+num(br?x[1]:x[2]),0);
  const frSar=(br?num(safi.fB):num(safi.fC)*u)*fr;
  const loss=num(over.loss!=null?over.loss:costs.loss),cull=num(over.cull!=null?over.cull:costs.cull);
- const k=1000/((1-loss)*(1-cull));const credit=num(costs.cullP)*k*(1-loss)*cull;
+ const k=1000/((1-loss)*(1-cull));const cullCredit=num(costs.cullP)*k*(1-loss)*cull;const sm=smOf(costs,loss,cull),smGain=sm.on?sm.gain:0;const credit=cullCredit+smGain;
  const sup=(costs.sup||[]).reduce((a,x)=>a+num(x[1]),0);
- return {safi,costs,dec,mode,u,E,comm,expSar,frSar,sharedSar:expSar+frSar,sharedE:u?(expSar+frSar)/u*E:0,loss,cull,k,credit,sup,pw:num(costs.pw),cap:num(dec.cap[mode]),
+ return {safi,costs,dec,mode,u,E,comm,expSar,frSar,sharedSar:expSar+frSar,sharedE:u?(expSar+frSar)/u*E:0,loss,cull,k,credit,cullCredit,smGain,sm,sup,pw:num(costs.pw),cap:num(dec.cap[mode]),
   pAdd:num(over.pAdd||0),noClient:!c,frMissing:frSar===0}}
 function item(C,it){const w=pkW(C.safi,C.costs,it.pk),cpp=num(it.cpp),p=num(it.p)+C.pAdd,pr=pkRow(C.costs,it.pk),pk=pr?num(pr[1]):null,wash=washOf(C.costs,it.v);
  const ok=w>0&&cpp>0&&C.u>0;const tPal=ok?cpp*w/1000:0;
@@ -63,7 +76,7 @@ function scenario(safi,costs,dec,mode,i,over,span){span=span==null?7:span;const 
  const raw=num(costs.raw),x=item(C,it),p0=num(it.p);const base={ok:false,m:mode,i,v:it.v||'',sz:it.sz||'',pk:it.pk||'',p:p0,raw,span};if(!x.ok||!(C.cap>0))return base;
  const T=C.cap*x.tPal,egy=raw*C.k-C.credit+x.pkg+C.sup+(x.wash||0),share=T>0?C.sharedE/T:0;
  const rows=[];for(let d=-span;d<=span;d++){const p=p0+d;if(!(p>0))continue;const q=planBE(C,[Object.assign({},it,{p})],[C.cap]);const pr=q.profitAt(raw);rows.push({d,p,R:q.R,perTon:T>0?pr/T:null,perShip:pr})}
- return Object.assign(base,{ok:true,k:C.k,rawTon:raw*C.k,credit:C.credit,pkg:x.pkg,sup:C.sup,wash:x.wash||0,egy,share,expSar:C.expSar,frSar:C.frSar,comm:C.comm,
+ return Object.assign(base,{ok:true,k:C.k,rawTon:raw*C.k,credit:C.credit,cullCredit:C.cullCredit,smGain:C.smGain,sm:C.sm,pkg:x.pkg,sup:C.sup,wash:x.wash||0,egy,share,expSar:C.expSar,frSar:C.frSar,comm:C.comm,
   total:egy+share,rev:x.rev,T,cap:C.cap,cartons:C.cap*x.cpp,minP:priceForRaw(C,it,raw),rows})}
 /* القرار في الاتجاهين (حساب واحد لكل الصفحات والتقرير):
    ① أقل سعر بيع للكرتونة بالريال لكل صنف/عبوة على سعر الخام النهارده (الصنف مالي الشحنة، نفس priceForRaw)
@@ -111,4 +124,4 @@ function sensitivity(safi,costs,dec,mode,items,n){const C0=ctx(safi,costs,dec,mo
 function parseCostsImport(txt){const s=String(txt||'').trim();const m=s.match(/COSTS1:([A-Za-z0-9+/=_-]+)/);let o=null;
  try{if(m){const b=m[1].replace(/-/g,'+').replace(/_/g,'/');const bin=typeof atob==='function'?atob(b):Buffer.from(b,'base64').toString('binary');o=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,ch=>ch.charCodeAt(0))))}else o=JSON.parse(s)}catch(e){return null}
  if(o&&o.app&&o.app!=='citrus-costs')return null;if(o&&o.S)o=o.S;if(!o||typeof o!=='object'||!Array.isArray(o.pk)||!Array.isArray(o.sup))return null;return costsFrom(o)}
-return {VER:'2.1.2',MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});
+return {VER:'2.2.0',SM_DEF,smState,smOf,MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});
