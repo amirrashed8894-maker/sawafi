@@ -1,5 +1,5 @@
 /* الصوافي — الواجهة والتقرير (v1.2.0). الحساب كله من calc() الأصلية في core.js */
-const VER='2.3.1';
+const VER='2.4.0';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
 const SK='safiNetback.v2';
 /* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
@@ -48,6 +48,22 @@ function hasCost(l){return l&&l[6]!=null&&l[6]!==''}
 function lineCost(l){return hasCost(l)?+l[6]:null}
 function costShown(l,i){const key='lines:'+i+':6';return key in DR?DR[key]:(hasCost(l)?l[6]:'')}
 function needCost(){return 'أدخل التكلفة'}
+/* v2.4.0 — تكلفة الطن تلقائي من قسم التكاليف حسب الصنف والعبوة (safi-autocost.js + costs-calc.js)، وقابلة للتعديل.
+   AC = آخر قراءة لبيانات التكاليف؛ بتتقري من جديد لو التكاليف اتغيرت (تاب تاني / رجوع للصفحة). */
+const AUTO_ON=typeof SafiAuto!=='undefined'&&typeof COSTS_CALC!=='undefined';
+let AC={raw:undefined,C:null};
+function costsData(){if(!AUTO_ON)return null;let r2=null,r1=null;try{r2=lsGet('citrusCosts.v2');if(!r2)r1=lsGet('citrusCosts')}catch(e){}const k=(r2||'')+'\u0001'+(r1||'');
+ if(AC.raw!==k){AC={raw:k,C:SafiAuto.loadCosts(r2,r1,COSTS_CALC)}}return AC.C}
+function autoInfo(l){return AUTO_ON?SafiAuto.costFor(costsData(),SafiAuto.lineVar(l),l[1],COSTS_CALC):{miss:'off'}}
+function applyAuto(){if(!AUTO_ON)return false;const ch=SafiAuto.apply(S.lines,autoInfo);if(ch){S.lines.forEach((l,i)=>{if(SafiAuto.isAuto(l)){const k='lines:'+i+':6';delete ERR[k];delete DR[k]}})}return ch}
+function acBadge(l,i){if(!AUTO_ON)return '';const x=autoInfo(l);
+ if(SafiAuto.isAuto(l))return x.ton!=null?'<div class="acb on" data-acb="'+i+'">✓ تلقائي من التكاليف <small>'+esc(x.var)+(x.src==='mix'?' · خلطة':'')+' · خام '+f(x.raw)+' ج/كجم</small></div>':(SafiAuto.lineVar(l)?'<div class="acb off" data-acb="'+i+'">'+acMiss(x)+'</div>':'');
+ return x.ton!=null?'<button type="button" class="acb re" data-acreset="'+i+'">↺ رجوع للتلقائي <span class="num">'+f(x.ton)+'</span></button>':'<div class="acb off" data-acb="'+i+'">يدوي</div>'}
+function acMiss(x){return x.miss==='costs'?'مفيش تكاليف محفوظة — اكتبها باليد':x.miss==='raw'?'«'+esc(x.var)+'» مالوش سعر خام في التكاليف — اختاره هناك أو اكتبها باليد':x.miss==='pk'?'العبوة مش في جدول التكاليف — اكتبها باليد':x.miss==='var'?'الصنف مش في جدول التكاليف — اكتبها باليد':'اكتبها باليد'}
+/* بعد أي تغيير: نحدّث خانة التكلفة وعلامتها في كل سطر من غير ما نلمس الخانة اللي بتكتب فيها */
+function paintAuto(){if(!AUTO_ON)return;document.querySelectorAll('[data-t$=":6"][data-t^="lines:"]').forEach(inp=>{const i=+inp.dataset.t.split(':')[1],l=S.lines[i];if(!l)return;
+  if(document.activeElement!==inp){const v=costShown(l,i);if(inp.value!==String(v))inp.value=v}
+  inp.classList.toggle('auto',SafiAuto.isAuto(l)&&hasCost(l));const h=inp.closest('.r2c')&&inp.closest('.r2c').querySelector('[data-achost]');if(h){const b=acBadge(l,i);if(h.innerHTML!==b)h.innerHTML=b}})}
 /* الربح/الخسارة والتعادل من تكلفة كل صنف (مرجّحة بالطن). الصافي نفسه من calc() من غير تغيير. */
 function attachCosts(r){const src=S.lines.filter(l=>+l[2]),u=S.sar,E=S.egp,comm=r.comm;let all=true,costT=0;
  r.lines.forEach((x,i)=>{const c=lineCost(src[i]);x.cost=c;
@@ -164,7 +180,7 @@ function setPack(row,v){if(v.startsWith('prod:')){const p=prodPk(v.slice(5));if(
   if(v==='__newpk'){NEWED={k:'pk',i:S.lines.indexOf(row)};return true}
   row[1]=v;const pal=palOf(v);if(pal){row[5]=pal;syncQty(row)}return false}
 function renderTables(){
- $('#lt').innerHTML='<div class="lhd"><span class="pkg">الصنف · المقاس · العبوة (من برنامج الإنتاج)</span><span>باليتات</span><span>كراتين/باليت</span><span>الكراتين</span><span>السعر ريال</span></div>'+S.lines.map((l,i)=>'<div class="ln'+(!l[0]?' need':'')+'" data-line="'+i+'"><div class="r1 rv">'+(NEWED&&NEWED.k==='v'&&NEWED.i===i?newIn('v',i,'اكتب اسم الصنف',NEWED.d||''):'<select data-pv="'+i+'" aria-label="الصنف">'+varOpts(l)+'</select>')+sizeCell(l,i)+'<button class="x" data-del="lines:'+i+'" aria-label="حذف">×</button></div><div class="r2">'+(NEWED&&NEWED.k==='pk'&&NEWED.i===i?'<div class="nwin pkn"><input data-nw="pkn" data-i="'+i+'" placeholder="اسم العبوة (مثال: صندوق بلاستيك 5 ك ملوّن)"><input class="v" inputmode="decimal" data-nw="pkw" data-i="'+i+'" placeholder="الوزن كجم"><input class="v" inputmode="decimal" data-nw="pkp" data-i="'+i+'" placeholder="صندوق/باليت" enterkeyhint="done"><button class="x ok" data-nwok="pk" data-i="'+i+'" aria-label="تمام">✓</button><button class="x" data-nwx="1" aria-label="إلغاء">↩</button></div>':'<select data-t="lines:'+i+':1" aria-label="نوع العبوة">'+pkOpts(l[1])+'</select>')+cell('lines:'+i+':4',l[4],'v','باليتات')+cell('lines:'+i+':5',l[5],'v','كراتين في الباليت')+'<div class="qauto" data-cartons="'+i+'" title="الكراتين = الباليتات × كراتين الباليت">'+f(+l[2]||0,0)+'</div>'+cell('lines:'+i+':3',l[3],'v','سعر العبوة')+'</div><div class="r2c"><div><label class="clab">تكلفة الطن هنا</label><div class="in'+(ERR['lines:'+i+':6']?' bad':'')+'"><input inputmode="decimal" class="v" data-t="lines:'+i+':6" aria-label="تكلفة الطن بالجنيه" value="'+esc(costShown(l,i))+'" placeholder="أدخل التكلفة"><span class="u">ج / طن</span></div></div><div class="plbox" data-pl="'+i+'"></div></div>'+errMsgs('lines:'+i)+'<div class="lv" data-lv="'+i+'"></div></div>').join('')+
+ $('#lt').innerHTML='<div class="lhd"><span class="pkg">الصنف · المقاس · العبوة (من برنامج الإنتاج)</span><span>باليتات</span><span>كراتين/باليت</span><span>الكراتين</span><span>السعر ريال</span></div>'+S.lines.map((l,i)=>'<div class="ln'+(!l[0]?' need':'')+'" data-line="'+i+'"><div class="r1 rv">'+(NEWED&&NEWED.k==='v'&&NEWED.i===i?newIn('v',i,'اكتب اسم الصنف',NEWED.d||''):'<select data-pv="'+i+'" aria-label="الصنف">'+varOpts(l)+'</select>')+sizeCell(l,i)+'<button class="x" data-del="lines:'+i+'" aria-label="حذف">×</button></div><div class="r2">'+(NEWED&&NEWED.k==='pk'&&NEWED.i===i?'<div class="nwin pkn"><input data-nw="pkn" data-i="'+i+'" placeholder="اسم العبوة (مثال: صندوق بلاستيك 5 ك ملوّن)"><input class="v" inputmode="decimal" data-nw="pkw" data-i="'+i+'" placeholder="الوزن كجم"><input class="v" inputmode="decimal" data-nw="pkp" data-i="'+i+'" placeholder="صندوق/باليت" enterkeyhint="done"><button class="x ok" data-nwok="pk" data-i="'+i+'" aria-label="تمام">✓</button><button class="x" data-nwx="1" aria-label="إلغاء">↩</button></div>':'<select data-t="lines:'+i+':1" aria-label="نوع العبوة">'+pkOpts(l[1])+'</select>')+cell('lines:'+i+':4',l[4],'v','باليتات')+cell('lines:'+i+':5',l[5],'v','كراتين في الباليت')+'<div class="qauto" data-cartons="'+i+'" title="الكراتين = الباليتات × كراتين الباليت">'+f(+l[2]||0,0)+'</div>'+cell('lines:'+i+':3',l[3],'v','سعر العبوة')+'</div><div class="r2c"><div><label class="clab">تكلفة الطن هنا</label><div class="in'+(ERR['lines:'+i+':6']?' bad':'')+'"><input inputmode="decimal" class="v'+(AUTO_ON&&SafiAuto.isAuto(l)&&hasCost(l)?' auto':'')+'" data-t="lines:'+i+':6" aria-label="تكلفة الطن بالجنيه" value="'+esc(costShown(l,i))+'" placeholder="أدخل التكلفة"><span class="u">ج / طن</span></div><div data-achost="'+i+'">'+acBadge(l,i)+'</div></div><div class="plbox" data-pl="'+i+'"></div></div>'+errMsgs('lines:'+i)+'<div class="lv" data-lv="'+i+'"></div></div>').join('')+
   '<div class="ltot" id="ltTot"></div>';fixSelects($('#lt'));
  const on=j=>((S.mode=='براد')==(j==1))?' class="on"':'';
  const md=j=>((S.mode=='براد')==(j==1))?' on':' off';
@@ -184,7 +200,7 @@ function errList(all){return Object.keys(ERR).filter(k=>all||(k!=='date'&&!/^lin
 
 /* ---------- العرض المباشر ---------- */
 function chainRows(r){return [['إجمالي المبيعات',r.sales],['العمولة ('+f(r.comm*100,1)+'%)',r.commV],['مصروفات '+S.mode+' في السعودية',r.expV],['نولون الشحن من مصر',r.frV],['الصافي بعد المصاريف',r.net,'t']]}
-function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.toggle('invalid',bad);
+function renderLive(){if(applyAuto())save();const E=errList(),bad=E.length>0;document.body.classList.toggle('invalid',bad);
  $('#net').innerHTML=esc(S.client)+' · '+esc(S.mode);
  document.querySelectorAll('[data-mh]').forEach(h=>{const on=h.dataset.mh==S.mode;h.classList.toggle('on',on);h.textContent=on?'محسوب — الشحن '+h.dataset.mh:'مش محسوب — الشحن مش '+h.dataset.mh});
  if(bad){$('#notice').hidden=true;$('#sum').innerHTML='<div class="lbl">صافي الطن هنا</div><div class="big"><span class="egp num">—</span></div><div class="err"><b>مفيش حساب لحد ما تصحح الخانات المعلّمة:</b><ul>'+E.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>';
@@ -219,8 +235,8 @@ function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.t
   if(!(+l[2])){e.innerHTML='<span class="clab">ربح / خسارة</span><b class="need">—</b>';return}
   if(!x||x.plTon==null){e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="need">'+needCost()+'</b>';return}
   e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="'+(x.plTon<0?'neg':'')+'">'+plH(x.plTon)+' ج</b>'});
- const tot=palTotals(),lt=$('#ltTot');if(lt)lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>'}
-function renderAll(){renderChips();renderInputs();renderTables();renderLive();showSaved();renderTools();$('#ver').textContent='· v'+VER}
+ const tot=palTotals(),lt=$('#ltTot');if(lt)lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>';paintAuto()}
+function renderAll(){if(applyAuto())save();renderChips();renderInputs();renderTables();renderLive();showSaved();renderTools();$('#ver').textContent='· v'+VER}
 
 /* ---------- الأحداث ---------- */
 function setErr(key,msg,raw){if(msg){ERR[key]=msg;DR[key]=raw}else{delete ERR[key];delete DR[key]}}
@@ -240,8 +256,8 @@ document.addEventListener('input',e=>{const t=e.target;
    if(a=='clients'&&S.client==old)S.client=t.value;
    if(a=='pk')S.lines.forEach(l=>{if(l[1]==old)l[1]=t.value});
    save();renderLive();return}
-  if(a=='lines'&&j=='6'){const raw=t.value;if(!String(raw).trim()){setErr(t.dataset.t,'');row[6]=null;markBad(t,t.dataset.t);save();renderLive();return}
-   const msg=checkVal(raw,'ge0');setErr(t.dataset.t,msg,raw);if(!msg)row[6]=toStore(raw);markBad(t,t.dataset.t);save();renderLive();return}
+  if(a=='lines'&&j=='6'){const raw=t.value;if(!String(raw).trim()){setErr(t.dataset.t,'');row[6]=null;if(AUTO_ON)SafiAuto.setAuto(row);markBad(t,t.dataset.t);save();renderLive();return}
+   const msg=checkVal(raw,'ge0');setErr(t.dataset.t,msg,raw);if(AUTO_ON)SafiAuto.setManual(row);if(!msg)row[6]=toStore(raw);markBad(t,t.dataset.t);save();renderLive();return}
   const msg=checkVal(t.value,NUMRULE[a][j],true);setErr(t.dataset.t,msg,t.value);if(!msg){row[+j]=toStore(t.value,a=='clients');if(a=='lines'&&(j=='4'||j=='5'))syncQty(row)}markBad(t,t.dataset.t);save();renderLive()}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id=='rMode'){REPMODE=t.value;buildPages();fit();return}
  if(t.dataset.date){const iso=parseDateInput(t.value);if(iso){S.date=iso;t.value=D(iso);setErr('date','');markBad(t,'date');save()}return}
@@ -259,7 +275,7 @@ document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&(t.dataset
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset&&t.dataset.ps!=null&&t.tagName==='INPUT')onPick(t)});
 function focusNew(){if(!NEWED)return;const e=document.querySelector('[data-nw][data-i="'+NEWED.i+'"]');if(e){e.focus();e.scrollIntoView({block:'center'})}}
 function commitNew(kind,i){const l=S.lines[i];if(!l||!NEWED){NEWED=null;return}
- if(kind==='v'){const e=document.querySelector('[data-nw="v"][data-i="'+i+'"]'),v=(e?e.value:'').trim();if(v){if(![].concat(ALSX.VARIETIES||[]).includes(v)){S.xv=Array.isArray(S.xv)?S.xv:[];if(!S.xv.includes(v))S.xv.push(v)}const m=lineMeta(l);l[7]={v,s:m&&m.v===v?m.s||'':''};l[0]=nameOf(v,l[7].s)}else if(NEWED.old){l[0]=NEWED.old[0];if(NEWED.old[1])l[7]=NEWED.old[1];else l.length=Math.min(l.length,7)}}
+ if(kind==='v'){const e=document.querySelector('[data-nw="v"][data-i="'+i+'"]'),v=(e?e.value:'').trim();if(v){if(![].concat(ALSX.VARIETIES||[]).includes(v)){S.xv=Array.isArray(S.xv)?S.xv:[];if(!S.xv.includes(v))S.xv.push(v)}const m=lineMeta(l);l[7]={v,s:m&&m.v===v?m.s||'':''};l[0]=nameOf(v,l[7].s)}else if(NEWED.old){l[0]=NEWED.old[0];if(NEWED.old[1])l[7]=NEWED.old[1];else if(l.length>8)l[7]=null;else l.length=Math.min(l.length,7)}}
  else if(kind==='s'){const e=document.querySelector('[data-nw="s"][data-i="'+i+'"]');if(e&&!e.value.trim()&&NEWED.old){l[0]=NEWED.old[0];if(NEWED.old[1])l[7]=NEWED.old[1]}}
  else if(kind==='pk'){const n=(document.querySelector('[data-nw="pkn"][data-i="'+i+'"]')||{}).value||'',w=parseNum((document.querySelector('[data-nw="pkw"][data-i="'+i+'"]')||{}).value||''),pal=parseNum((document.querySelector('[data-nw="pkp"][data-i="'+i+'"]')||{}).value||'');const nm=n.trim();
   if(nm){const kg=isFinite(w)&&w>0?w:((ALSX.kgOfText&&ALSX.kgOfText(nm))||10),pp=isFinite(pal)&&pal>0?pal:0;if(!S.pk.some(q=>q[0]===nm))S.pk.push([nm,kg,pp]);l[1]=nm;if(pp){l[5]=pp;syncQty(l)}}}
@@ -291,6 +307,7 @@ function renderTools(){const u=$('#bUndo'),b=readState(SK_B);if(u){u.hidden=!b;i
  const n=$('#pinNote'),p=readState(SK_P);if(n)n.textContent=p?'المدخلات الرئيسية: اللي ثبّتها على الجهاز ده يوم '+stamp(p.t):'المدخلات الرئيسية: تقرير 17/11/2026 (فاكهة الصيف، براد)'}
 function clearErrs(a){Object.keys(ERR).filter(k=>k.startsWith(a+':')).forEach(k=>{delete ERR[k];delete DR[k]})}
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+ if(t.dataset.acreset!=null){const i=+t.dataset.acreset,l=S.lines[i];if(!l||!AUTO_ON)return;SafiAuto.setAuto(l);const k='lines:'+i+':6';delete ERR[k];delete DR[k];applyAuto();save();renderTables();renderLive();return}
  if(t.dataset.c!=null){S.client=S.clients[+t.dataset.c][0];save();renderChips();renderLive()}
  else if(t.dataset.m){S.mode=t.dataset.m;save();renderChips();renderTables();renderLive()}
  else if(t.dataset.add){const a=t.dataset.add;   // نفس قيم الإضافة في البرنامج الأصلي
@@ -374,6 +391,11 @@ function sharePdf(){/* in-app preview; «إرسال واتساب» inside it sha
  $('#busy').hidden=false;makePdf().then(pdf=>{const blob=pdf.output('blob'),name=fname();window.__lastPdf={size:blob.size,name:name};$('#busy').hidden=true;
   PdfShare.open(blob,name,{title:name.replace('.pdf','').replace(/_/g,' ')})})
  .catch(e=>{$('#busy').hidden=true;alert('ماقدرتش أجهز الـ PDF: '+(e&&e.message||e))})}
-window.SFAPP={PRODPK,nameOf,setMode:m=>{REPMODE=m},makePdf,state:()=>S,render:renderAll,calc:()=>calc(S),result,layout,repParts,D,today,cairoISO,parseDateInput,migrateLines,syncQty,palTotals,attachCosts,lineCost,hasCost};
+window.SFAPP={PRODPK,nameOf,setMode:m=>{REPMODE=m},makePdf,state:()=>S,render:renderAll,calc:()=>calc(S),result,layout,repParts,D,today,cairoISO,parseDateInput,migrateLines,syncQty,palTotals,attachCosts,lineCost,hasCost,autoInfo,applyAuto};
 renderAll();
 restoreFromIdb();
+/* v2.4.0: التكاليف اتغيرت (تاب تاني أو رجعت من قسم التكاليف) → التكلفة التلقائية تتحدث */
+function costsChanged(){if(!AUTO_ON)return;const before=AC.raw;costsData();if(AC.raw!==before&&applyAuto()){save();renderTables();renderLive()}else if(AC.raw!==before)paintAuto()}
+window.addEventListener('storage',e=>{if(e.key==='citrusCosts.v2'||e.key==='citrusCosts')costsChanged()});
+window.addEventListener('pageshow',costsChanged);
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&t.dataset&&/^lines:\d+:6$/.test(t.dataset.t||''))setTimeout(paintAuto,0)});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')costsChanged()});

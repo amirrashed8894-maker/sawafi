@@ -2,6 +2,7 @@
 import pathlib,re,subprocess
 d=pathlib.Path(__file__).parent
 subprocess.run(['node',str(d/'tools'/'gen-safi-fresh.js')],check=True)
+subprocess.run(['node',str(d/'tools'/'gen-costs-calc.js')],check=True)
 def build(src,out,css):
     c=(d/css).read_text()
     if css=='costs.css':

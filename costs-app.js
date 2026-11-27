@@ -1,5 +1,5 @@
 /* تكاليف الموالح — الواجهة والتقرير (v2.2.0: + محلي سوبرماركت بدل جزء من الفرزة، calcX في costs-core.js). الحساب كله من calc() الأصلية في core.js */
-const VER='2.3.1';
+const VER='2.4.0';
 /* calcX = calc الأصلية + فرق السوبرماركت (لو النسبة صفر = calc بالظبط). لو ملف قديم في الكاش من غير calcX، نرجع لـ calc */
 const CALC=typeof calcMix==='function'?calcMix:(typeof calcX==='function'?calcX:calc);const SMON=()=>typeof smState==='function';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي (منسوخ حرفيًا) */
@@ -20,7 +20,9 @@ function applyFreshDate(){try{if(!localStorage.getItem(SK)&&!localStorage.getIte
 let ERR={},DR={};            // أخطاء المدخلات والنص المكتوب غلط — بيتحفظوا في مفتاح منفصل عشان الغلط يفضل ظاهر بعد إعادة الفتح (S نفسها فيها آخر قيمة صحيحة)
 const UK='citrusCosts.v2.pending';try{const u=JSON.parse(localStorage.getItem(UK)||'null');if(u&&u.ERR&&u.DR){ERR=u.ERR;DR=u.DR}}catch(e){}
 let lastT=null;
-function save(){try{lastT=Date.now();localStorage.setItem(SK,JSON.stringify({ver:2,t:lastT,S}));if(Object.keys(ERR).length)localStorage.setItem(UK,JSON.stringify({ERR,DR}));else localStorage.removeItem(UK);showSaved()}catch(e){const n=$('#ls');if(n)n.textContent='تعذّر الحفظ على الجهاز (وضع التصفح الخاص؟)'}}
+/* v2.4.0: كل صنف بيفتكر آخر سعر خام اتكتب له (S.rawBy) — الصوافي بتاخد منه تكلفة الطن تلقائي لكل صنف (safi-autocost.js) */
+function noteRaw(){if(!S||!S.variety||!(isFinite(+S.raw)))return;if(!S.rawBy||typeof S.rawBy!=='object'||Array.isArray(S.rawBy))S.rawBy={};S.rawBy[S.variety]=+S.raw}
+function save(){try{noteRaw();lastT=Date.now();localStorage.setItem(SK,JSON.stringify({ver:2,t:lastT,S}));if(Object.keys(ERR).length)localStorage.setItem(UK,JSON.stringify({ERR,DR}));else localStorage.removeItem(UK);showSaved()}catch(e){const n=$('#ls');if(n)n.textContent='تعذّر الحفظ على الجهاز (وضع التصفح الخاص؟)'}}
 function showSaved(){const n=$('#ls');if(!n||!lastT)return;const d=new Date(lastT);n.textContent='آخر حفظ '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 try{const p=JSON.parse(localStorage.getItem(SK)||'null');if(p&&p.t)lastT=p.t}catch(e){}
 if(typeof ensureCostsCatalog==='function'&&ensureCostsCatalog(S)){try{localStorage.setItem(SK,JSON.stringify({ver:2,t:lastT||Date.now(),S}))}catch(e){}}
@@ -37,7 +39,7 @@ const PCT={loss:1,cull:1,pw:1};
 function shown(k){const key='k:'+k;if(key in DR)return DR[key];return PCT[k]?+(S[k]*100).toFixed(4):S[k]}
 function renderInputs(){let h='<div class="f full"><label>تاريخ الحساب</label><div class="in'+(ERR.date?' bad':'')+'"><input data-date="1" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="يوم/شهر/سنة" aria-label="تاريخ الحساب يوم/شهر/سنة" value="'+esc(dateShown())+'"></div>'+(ERR.date?'<div class="emsg" data-for="date">'+esc(ERR.date)+'</div>':'')+'<div class="hint">ميلادي — يوم/شهر/سنة</div></div>';
  FIELDS.forEach(x=>{if(x[0]=='sec'){h+='<div class="sec">'+x[1]+'</div>';return}
-  h+='<div class="f"><label>'+x[1]+'</label><div class="in'+(ERR['k:'+x[0]]?' bad':'')+'"><input inputmode="decimal" data-k="'+x[0]+'" value="'+esc(shown(x[0]))+'"><span class="u">'+x[2]+'</span></div>'+(ERR['k:'+x[0]]?'<div class="emsg" data-for="k:'+x[0]+'">'+ERR['k:'+x[0]]+'</div>':'')+'</div>'});
+  h+='<div class="f"><label>'+x[1]+'</label><div class="in'+(ERR['k:'+x[0]]?' bad':'')+'"><input inputmode="decimal" data-k="'+x[0]+'" value="'+esc(shown(x[0]))+'"><span class="u">'+x[2]+'</span></div>'+(ERR['k:'+x[0]]?'<div class="emsg" data-for="k:'+x[0]+'">'+ERR['k:'+x[0]]+'</div>':'')+(x[0]=='raw'?'<div class="hint rawhint">سعر خام «'+esc(S.variety)+'» — كل صنف بيفتكر سعر خامه، والصوافي بتاخد تكلفة الطن منه تلقائي</div>':'')+'</div>'});
  $('#inputs').innerHTML=h}
 function cell(key,val,cls){const bad=ERR[key];return '<input class="'+(cls||'')+(bad?' bad':'')+'" '+(cls=='v'?'inputmode="decimal" ':'')+'data-t="'+key+'" value="'+esc(key in DR?DR[key]:val)+'">'}
 function renderTables(){
@@ -193,7 +195,7 @@ document.addEventListener('input',e=>{const t=e.target;
   if(!msg&&S.pk[i]){S.pk[i][3]=toStore(t.value);if(Array.isArray(S.mix))S.mix=S.mix.map(r=>{if(+r.i!==i)return r;const pn=palNetKg(S.pk[i]);const pal=+r.pal||(pn>0?Math.round((+r.net||0)/pn):0);return {i:i,pal:pal,net:pn>0?pal*pn:+r.net||0}})}
   markBad(t,key);save();renderChips();renderLive();return}
  if(t.dataset.t){const [a,i,j]=t.dataset.t.split(':'),row=S[a][+i];if(!row)return;
-  if(j=='0'){const old=row[0];row[0]=t.value;if(a=='var'&&S.variety==old)S.variety=t.value;save();renderLive();return}
+  if(j=='0'){const old=row[0];row[0]=t.value;if(a=='var'&&S.variety==old)S.variety=t.value;if(a=='var'&&S.rawBy&&S.rawBy[old]!=null&&!S.var.some(v=>v[0]===old)){if(S.rawBy[t.value]==null)S.rawBy[t.value]=S.rawBy[old];delete S.rawBy[old]}save();renderLive();return}
   const rule=(a=='pk'&&j=='2')?'gt0':'ge0',msg=checkVal(t.value,rule,true);setErr(t.dataset.t,msg,t.value);if(!msg)row[+j]=toStore(t.value);if(a=='pk'&&j=='3'&&Array.isArray(S.mix)){S.mix=S.mix.map(r=>{if(+r.i!==+i)return r;const pn=typeof palNetKg==='function'?palNetKg(row):0;const pal=+r.pal||0;return {i:+i,pal:pal,net:pn>0?pal*pn:+r.net||0}})}markBad(t,t.dataset.t);save();if(a=='pk'&&(j=='2'||j=='3'))renderChips();renderLive()}});
 document.addEventListener('change',e=>{const t=e.target;
  if(t.dataset.date){const iso=parseDateInput(t.value);if(iso){S.date=iso;t.value=D(iso);setErr('date','');markBad(t,'date');save()}return}
@@ -201,7 +203,7 @@ document.addEventListener('change',e=>{const t=e.target;
  const key=t.dataset.k?'k:'+t.dataset.k:t.dataset.t;if(!key||ERR[key])return;if(String(t.value).trim()==='')return;const x=parseNum(t.value);if(isFinite(x)&&String(x)!==t.value.trim())t.value=String(x)});
 function blocked(){const E=errList(true);if(!E.length)return false;alert('صحّح الخانات دي الأول:\n• '+E.join('\n• '));return true}
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
- if(t.dataset.v!=null){S.variety=S.var[+t.dataset.v][0];save();renderChips();renderLive()}
+ if(t.dataset.v!=null){noteRaw();S.variety=S.var[+t.dataset.v][0];const rb=S.rawBy&&S.rawBy[S.variety];if(rb!=null&&isFinite(+rb)&&+rb!==S.raw){S.raw=+rb;delete ERR['k:raw'];delete DR['k:raw']}save();renderChips();renderInputs();renderLive()}
  else if(t.dataset.p!=null){S.pkg=+t.dataset.p;S.mix=null;save();renderChips();renderLive()}
  else if(t.id=='bMixAdd'){const host=$('#mix');if(!host)return;const selected=mixIdx();const opts=S.pk.map((p,i)=>selected.indexOf(i)<0?'<button class="chip sm" type="button" data-mixadd="'+i+'">'+esc(p[0])+'</button>':'').join('');
   let box=$('#mixPick');if(!box){box=document.createElement('div');box.id='mixPick';box.className='mixpick';host.appendChild(box)}
