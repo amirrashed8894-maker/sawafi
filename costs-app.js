@@ -67,7 +67,7 @@ function renderMix(){let host=$('#mix');if(!host){host=document.createElement('s
    else h+='<label>صناديق/باليت<input class="v" inputmode="decimal" data-mixbpp="'+x.i+'" placeholder="اكتب العدد" value=""></label><label>طن صافي<input class="v" inputmode="decimal" data-mixnet="'+x.i+'" value="'+esc(+(x.net/1000).toFixed(3))+'"></label>';
    h+='</div><div class="mixq"><span class="num">'+f(x.net/1000,2)+' طن</span><span class="num">'+f(x.pct,1)+'%</span></div><button class="x" data-mixdel="'+x.i+'" aria-label="شيل من الخلطة">×</button></div>'});
   const gap=Math.abs((r.mix.totNet||0)-S.net);
-  h+='<div class="mixsum">الموزّع '+N(f((r.mix.totNet||0)/1000,2))+' طن من الحاوية '+N(f(S.net/1000,1))+' طن';
+  h+='<div class="mixsum">الموزّع '+N(f((r.mix.totNet||0)/1000,2))+' طن من الحاوية '+N(f(S.net/1000,2))+' طن';
   if(r.mix.totPal)h+=' · '+N(f(r.mix.totPal,0))+' باليت';
   if(gap>1)h+=' <em>قرّب التوزيع من صافي الحاوية</em>';
   h+='</div></div>'}
@@ -112,7 +112,7 @@ function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.t
 function refreshMixNums(r){const host=$('#mix');if(!host||!r||!r.mix)return;
  host.querySelectorAll('.mixr').forEach(row=>{const inp=row.querySelector('[data-mixpal],[data-mixnet]');if(!inp)return;const i=+(inp.dataset.mixpal||inp.dataset.mixnet);const x=r.mix.rows.find(z=>z.i===i);if(!x)return;
   const q=row.querySelector('.mixq');if(q)q.innerHTML='<span class="num">'+f(x.net/1000,2)+' طن</span><span class="num">'+f(x.pct,1)+'%</span>'});
- const s=host.querySelector('.mixsum');if(s){const gap=Math.abs((r.mix.totNet||0)-S.net);s.innerHTML='الموزّع '+N(f((r.mix.totNet||0)/1000,2))+' طن من الحاوية '+N(f(S.net/1000,1))+' طن'+(r.mix.totPal?' · '+N(f(r.mix.totPal,0))+' باليت':'')+(gap>1?' <em>قرّب التوزيع من صافي الحاوية</em>':'')}}
+ const s=host.querySelector('.mixsum');if(s){const gap=Math.abs((r.mix.totNet||0)-S.net);s.innerHTML='الموزّع '+N(f((r.mix.totNet||0)/1000,2))+' طن من الحاوية '+N(f(S.net/1000,2))+' طن'+(r.mix.totPal?' · '+N(f(r.mix.totPal,0))+' باليت':'')+(gap>1?' <em>قرّب التوزيع من صافي الحاوية</em>':'')}}
 function renderDecBlend(r){let n=$('#decBlend');const host=$('#costsDec');
  if(!(r&&r.mix)){if(n)n.remove();return}
  if(!n){n=document.createElement('div');n.id='decBlend';n.className='decblend';if(host)host.parentNode.insertBefore(n,host);else return}
