@@ -45,6 +45,20 @@
  <section class="card">
   <h2>أسعار العبوات</h2>
   <div id="pkt"></div>
+  <button class="btn ghost wide" id="bAddPk">+ إضافة عبوة جديدة</button>
+  <div id="pkAdd" class="pkform" hidden>
+   <div class="pkform-h">عبوة جديدة</div>
+   <label>اسم العبوة<input data-npk="n" placeholder="مثال: صندوق بلاستيك 5 ك ملوّن" autocomplete="off"></label>
+   <div class="pkform-row">
+    <label>الصافي كجم<input class="v" data-npk="w" inputmode="decimal" placeholder="5" dir="ltr"></label>
+    <label>صناديق / باليت<input class="v" data-npk="b" inputmode="decimal" placeholder="200" dir="ltr"></label>
+    <label>السعر ج<input class="v" data-npk="p" inputmode="decimal" placeholder="اختياري" dir="ltr"></label>
+   </div>
+   <div class="pkform-act">
+    <button class="btn pri" id="bPkOk" type="button">إضافة</button>
+    <button class="btn ghost" id="bPkCancel" type="button">إلغاء</button>
+   </div>
+  </div>
  </section>
  <section class="card">
   <h2>مستلزمات الإنتاج <small>ج / طن صافي</small></h2>
@@ -74,11 +88,11 @@
 </div>
 <div id="busy" class="busy" hidden><div>بيجهز الـ PDF…</div></div>
 <script src="nav.js?v=200"></script>
-<script src="costs-core.js?v=220"></script>
+<script src="costs-core.js?v=221"></script>
 <script src="pdf-share.js"></script>
-<script src="costs-app.js?v=220"></script>
+<script src="costs-app.js?v=221"></script>
 <script src="be-core.js?v=220"></script>
-<script src="costs-io.js?v=200"></script>
+<script src="costs-io.js?v=221"></script>
 <script src="exp-migrate.js?v=201"></script>
 <script src="safi-fresh.js?v=210"></script>
 <script src="be-two.js?v=220"></script>

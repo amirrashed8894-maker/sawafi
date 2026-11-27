@@ -64,4 +64,22 @@ delete store['citrusCosts.v2'];
 const fresh=C._ld('citrusCosts.v2','citrusCosts');
 log(fresh.pk[0][1]===23 && fresh.sup[2][1]===300 && fresh.var[0][1]===2500, 'fresh load uses new defaults');
 
+const E=require('../../costs-core.js');
+const s1=JSON.parse(JSON.stringify(E.DEF));
+log(s1.pk.length===6, 'DEF.pk نفسها 6 عبوات (الإضافة مش جوه DEF)');
+const ch=E.ensureCostsCatalog(s1);
+log(!!ch && s1.pk.length===8, 'ensure بيزوّد العبوتين الملوّنتين');
+const p5=s1.pk.find(x=>x[0]==='صندوق بلاستيك 5 ك ملوّن');
+const p25=s1.pk.find(x=>x[0]==='صندوق بلاستيك 2.5 ك ملوّن');
+log(!!p5 && p5[1]===13 && p5[2]===5 && p5[3]===200, '5 ك ملوّن 13ج / 5كجم / 200 صندوق');
+log(!!p25 && p25[1]===11 && p25[2]===2.5 && p25[3]===400, '2.5 ك ملوّن 11ج / 2.5كجم / 400 صندوق');
+log(s1.pk[0][1]===23 && s1.pk[5][1]===13.5, 'أسعار العبوات القديمة زي ما هي');
+log(s1.var.some(v=>v[0]==='يوسفي') && s1.var.some(v=>v[0]==='أفندي' && v[1]===1800), 'يوسفي موجود + أفندي 1800');
+const s2=JSON.parse(JSON.stringify(s1));
+log(E.ensureCostsCatalog(s2)===false && s2.pk.length===8, 'ensure مش بيكرّر العبوة لو الاسم موجود');
+const s3=JSON.parse(JSON.stringify(E.DEF));s3.pk[0][1]=99;E.ensureCostsCatalog(s3);
+log(s3.pk[0][1]===99, 'ما بيلمسش سعر عبوة محفوظة');
+const r=E.calc(s1),r0=E.calc(Object.assign(JSON.parse(JSON.stringify(E.DEF)),{pkg:0}));
+log(r.rawT===r0.rawT && r.supT===r0.supT && r.wash===r0.wash, 'calc للعبوة القديمة ما اتغيرش بعد الإضافة');
+
 process.exit(ok?0:1);

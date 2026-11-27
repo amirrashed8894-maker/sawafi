@@ -202,7 +202,8 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 
 /* v1.4.1 خانة «+ جديد» جوه السطر */
 .ln .nwin{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:6px}
-.ln .nwin.pkn{grid-column:1/-1;grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) 38px 38px}
+.ln .nwin.pkn,.nwin.pkn.pkadd{grid-column:1/-1;grid-template-columns:minmax(0,1.3fr) minmax(72px,.7fr) minmax(78px,.8fr) 38px 38px}
+.nwin.pkn.pkadd{margin:8px 0 12px}
 .ln .x.ok{background:#111;color:#fff}
 /* v1.5.0 سعر شراء الخام للتعادل */
 .be .be-modes{margin:0 0 10px}

@@ -5,7 +5,7 @@ function apply(txt){const c=BE.parseCostsImport(txt);if(!c){alert('الملف أ
  if(!confirm('تستبدل أرقام التكاليف الحالية باللي في الملف؟\nالأرقام الحالية هتتحفظ نسخة احتياطية.'))return false;
  /* بنغيّر S اللي في الصفحة نفسها ونحفظ (مش reload) — لأن قسم التكاليف بيحفظ S عند قفل الصفحة وكان هيرجّع الأرقام القديمة */
  try{const old=localStorage.getItem('citrusCosts.v2');if(old)localStorage.setItem('citrusCosts.v2.beforeImport',old)}catch(e){}
- c.date=S.date||cairoISO();if(S.usd>0)c.usd=S.usd;S=c;ERR={};DR={};save();renderAll();
+ c.date=S.date||cairoISO();if(S.usd>0)c.usd=S.usd;S=c;if(typeof ensureCostsCatalog==='function')ensureCostsCatalog(S);ERR={};DR={};save();renderAll();
  alert('اتستوردت التكاليف ✓ (الدولار فضل الموحّد '+S.usd+' ج)');return true}
 function exportCosts(){const blob=new Blob([JSON.stringify({app:'citrus-costs',ver:2,t:Date.now(),S},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='التكاليف-'+cairoISO()+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('button');if(!t)return;

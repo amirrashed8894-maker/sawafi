@@ -1,5 +1,5 @@
 /* تكاليف الموالح — الواجهة والتقرير (v2.2.0: + محلي سوبرماركت بدل جزء من الفرزة، calcX في costs-core.js). الحساب كله من calc() الأصلية في core.js */
-const VER='2.2.0';
+const VER='2.2.1';
 /* calcX = calc الأصلية + فرق السوبرماركت (لو النسبة صفر = calc بالظبط). لو ملف قديم في الكاش من غير calcX، نرجع لـ calc */
 const CALC=typeof calcX==='function'?calcX:calc;const SMON=()=>typeof smState==='function';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي (منسوخ حرفيًا) */
@@ -23,6 +23,7 @@ let lastT=null;
 function save(){try{lastT=Date.now();localStorage.setItem(SK,JSON.stringify({ver:2,t:lastT,S}));if(Object.keys(ERR).length)localStorage.setItem(UK,JSON.stringify({ERR,DR}));else localStorage.removeItem(UK);showSaved()}catch(e){const n=$('#ls');if(n)n.textContent='تعذّر الحفظ على الجهاز (وضع التصفح الخاص؟)'}}
 function showSaved(){const n=$('#ls');if(!n||!lastT)return;const d=new Date(lastT);n.textContent='آخر حفظ '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 try{const p=JSON.parse(localStorage.getItem(SK)||'null');if(p&&p.t)lastT=p.t}catch(e){}
+if(typeof ensureCostsCatalog==='function'&&ensureCostsCatalog(S)){try{localStorage.setItem(SK,JSON.stringify({ver:2,t:lastT||Date.now(),S}))}catch(e){}}
 window.addEventListener('pagehide',()=>save());
 window.addEventListener('beforeunload',()=>save());
 window.addEventListener('freeze',()=>save());
@@ -40,15 +41,15 @@ function renderInputs(){let h='<div class="f full"><label>تاريخ الحسا�
  $('#inputs').innerHTML=h}
 function cell(key,val,cls){const bad=ERR[key];return '<input class="'+(cls||'')+(bad?' bad':'')+'" '+(cls=='v'?'inputmode="decimal" ':'')+'data-t="'+key+'" value="'+esc(key in DR?DR[key]:val)+'">'}
 function renderTables(){
- $('#pkt').innerHTML='<div class="trow th"><span>العبوة</span><span>السعر ج</span><span>الصافي كجم</span></div>'+S.pk.map((p,i)=>'<div class="trow">'+cell('pk:'+i+':0',p[0])+cell('pk:'+i+':1',p[1],'v')+cell('pk:'+i+':2',p[2],'v')+'</div>').join('');
+ $('#pkt').innerHTML='<div class="trow th pk4"><span>العبوة</span><span>السعر ج</span><span>الصافي كجم</span><span>صندوق/باليت</span></div>'+S.pk.map((p,i)=>'<div class="trow pk4">'+cell('pk:'+i+':0',p[0])+cell('pk:'+i+':1',p[1],'v')+cell('pk:'+i+':2',p[2],'v')+cell('pk:'+i+':3',p[3]||'','v')+'</div>').join('');
  $('#supt').innerHTML=S.sup.map((p,i)=>'<div class="sup">'+cell('sup:'+i+':0',p[0])+cell('sup:'+i+':1',p[1],'v')+'</div>').join('')+'<div class="suptot"><span>إجمالي المستلزمات</span><span class="num" id="supTot"></span></div>';
  $('#vart').innerHTML=S.var.map((p,i)=>'<div class="sup three">'+cell('var:'+i+':0',p[0])+cell('var:'+i+':1',p[1],'v')+'<button class="x" data-dv="'+i+'" aria-label="حذف">×</button></div>').join('');
  Object.keys(ERR).filter(k=>!k.startsWith('k:')).forEach(k=>{const el=document.querySelector('[data-t="'+k+'"]');if(el)markBad(el,k)})}
 function renderChips(){
  $('#vars').innerHTML=S.var.map((v,i)=>'<button class="chip'+(v[0]===S.variety?' on':'')+'" data-v="'+i+'">'+esc(v[0])+'</button>').join('')+'<button class="chip add" id="addVar">+ صنف جديد</button>';
- $('#pkgs').innerHTML=S.pk.map((p,i)=>'<button class="chip sm'+(i==S.pkg?' on':'')+'" data-p="'+i+'">'+esc(p[0])+'</button>').join('')}
+ $('#pkgs').innerHTML=S.pk.map((p,i)=>'<button class="chip sm'+(i==S.pkg?' on':'')+'" data-p="'+i+'">'+esc(p[0])+'</button>').join('')+'<button class="chip add sm" id="addPk">+ عبوة جديدة</button>'}
 function errList(all){const L=[];Object.keys(ERR).forEach(k=>{if(!all&&k==='date')return;const a=k.split(':');let nm;
-  if(k==='date')nm='تاريخ الحساب';else if(a[0]=='k')nm=RULES[a[1]][0];else if(a[0]=='pk')nm=(a[2]=='1'?'سعر ':'وزن ')+'«'+(S.pk[a[1]]||[''])[0]+'»';else if(a[0]=='sup')nm='بند «'+(S.sup[a[1]]||[''])[0]+'»';else if(a[0]=='sm')nm={p:'نسبة السوبرماركت من الفرزة',price:'سعر بيع السوبرماركت',oth:'مصاريف تانية للصندوق'}[a[1]]||'السوبرماركت';else if(a[0]=='smb'){const b=(SMON()?smState(S).bx[a[1]]:null)||[''];nm=(a[2]=='1'?'سعر ':a[2]=='2'?'صافي فاكهة ':'وزن ')+'«'+b[0]+'»'}else nm='غسيل «'+(S.var[a[1]]||[''])[0]+'»';
+  if(k==='date')nm='تاريخ الحساب';else if(a[0]=='k')nm=RULES[a[1]][0];else if(a[0]=='pk')nm=(a[2]=='1'?'سعر ':a[2]=='3'?'صناديق الباليت لـ ':'وزن ')+'«'+(S.pk[a[1]]||[''])[0]+'»';else if(a[0]=='sup')nm='بند «'+(S.sup[a[1]]||[''])[0]+'»';else if(a[0]=='sm')nm={p:'نسبة السوبرماركت من الفرزة',price:'سعر بيع السوبرماركت',oth:'مصاريف تانية للصندوق'}[a[1]]||'السوبرماركت';else if(a[0]=='smb'){const b=(SMON()?smState(S).bx[a[1]]:null)||[''];nm=(a[2]=='1'?'سعر ':a[2]=='2'?'صافي فاكهة ':'وزن ')+'«'+b[0]+'»'}else nm='غسيل «'+(S.var[a[1]]||[''])[0]+'»';
   L.push(nm+': '+ERR[k])});if(SMON()){const x=smOf(S);if(x.over)L.push('توزيع الخام: الفرزة '+f(S.cull*100,1)+'% + السوبرماركت '+f(x.share*100,1)+'% لازم أقل من 100% (وإلا مفيش تصدير)')}return L}
 
 /* ---------- العرض المباشر ---------- */
@@ -156,9 +157,19 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
  if(t.dataset.v!=null){S.variety=S.var[+t.dataset.v][0];save();renderChips();renderLive()}
  else if(t.dataset.p!=null){S.pkg=+t.dataset.p;save();renderChips();renderLive()}
  else if(t.id=='addVar'||t.id=='bAddVar'){const nm=(prompt('اسم الصنف الجديد:','صنف جديد')||'').trim();if(!nm)return;S.var.push([nm,1800]);S.variety=nm;save();renderAll()}
+ else if(t.id=='addPk'||t.id=='bAddPk'){const box=$('#pkAdd');if(box){box.hidden=false;const i=box.querySelector('[data-npk=\'n\']');if(i){i.focus();box.scrollIntoView({block:'center'})}}return}
+ else if(t.id=='bPkCancel'){const box=$('#pkAdd');if(box){box.hidden=true;box.querySelectorAll('input').forEach(i=>i.value='')}return}
+ else if(t.id=='bPkOk'){const box=$('#pkAdd');if(!box)return;const g=k=>(box.querySelector('[data-npk=\''+k+'\']')||{}).value||'';
+  const nm=g('n').trim(),kg=parseNum(g('w')),pr=parseNum(g('p')),pal=parseNum(g('b'));
+  if(!nm){alert('اكتب اسم العبوة');return}
+  if(!(kg>0)){alert('الصافي لازم يكون أكبر من صفر');return}
+  if(S.pk.some(x=>x[0]===nm)){alert('العبوة «'+nm+'» موجودة');return}
+  if(g('p').trim()&&!(pr>=0)){alert('سعر العبوة مكتوب غلط');return}
+  if(g('b').trim()&&!(pal>=0)){alert('عدد الصناديق في الباليت مكتوب غلط');return}
+  S.pk.push([nm,g('p').trim()?pr:0,kg,g('b').trim()?pal:0]);S.pkg=S.pk.length-1;box.hidden=true;box.querySelectorAll('input').forEach(i=>i.value='');save();renderAll()}
  else if(t.dataset.dv!=null){const i=+t.dataset.dv,nm=S.var[i][0];if(!confirm('حذف صنف «'+nm+'» من جدول الغسيل؟'))return;S.var.splice(i,1);
   Object.keys(ERR).filter(k=>k.startsWith('var:')).forEach(k=>{delete ERR[k];delete DR[k]});if(S.variety==nm&&S.var.length)S.variety=S.var[0][0];save();renderAll()}
- else if(t.id=='bReset'){if(!confirm('ترجع للأرقام الأصلية؟ كل أرقامك هتتمسح.'))return;S=JSON.parse(JSON.stringify(DEF));ERR={};DR={};save();renderAll()}
+ else if(t.id=='bReset'){if(!confirm('ترجع للأرقام الأصلية؟ كل أرقامك هتتمسح.'))return;S=JSON.parse(JSON.stringify(DEF));if(typeof ensureCostsCatalog==='function')ensureCostsCatalog(S);ERR={};DR={};save();renderAll()}
  else if(t.id=='bReport'){if(blocked())return;openRep()}
  else if(t.id=='bPrint'||t.id=='rPrint'){if(blocked())return;buildPages();$('#rep').hidden=false;fit();setTimeout(()=>window.print(),350)}
  else if(t.id=='bShare'||t.id=='rShare'){if(blocked())return;sharePdf()}

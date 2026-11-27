@@ -146,3 +146,15 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .smt tr.s td{font-weight:800;border-top:1.5px solid var(--ink)}
 .smsplit{font-size:13.5px;color:var(--ink2);background:#fff;border:1px dashed #cfcfcf;border-radius:10px;padding:8px 10px;margin-bottom:8px;line-height:1.7}
 .smsplit span{font-weight:800;color:var(--ink)}
+
+.trow.pk4{grid-template-columns:minmax(0,1.15fr) 70px 72px 78px}
+.pkform{margin-top:10px;padding:12px;background:var(--soft,#f4f4f4);border:1px solid var(--line,#e4e4e4);border-radius:14px}
+.pkform-h{font-weight:800;margin-bottom:8px}
+.pkform label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--mut,#555);margin-bottom:8px}
+.pkform input{font:inherit;border:1.5px solid #d6d6d6;border-radius:10px;padding:9px 10px;font-size:16px;min-width:0;outline:0;background:#fff}
+.pkform input:focus{border-color:var(--ink,#111)}
+.pkform input.v{font-weight:700;text-align:left;direction:ltr}
+.pkform-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.pkform-act{display:flex;gap:8px;margin-top:4px}
+.pkform-act .btn{flex:1}
+@media(max-width:430px){.trow.pk4{grid-template-columns:minmax(0,1fr) 64px 64px 70px;gap:6px}.pkform-row{grid-template-columns:1fr 1fr}}

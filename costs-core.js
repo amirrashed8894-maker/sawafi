@@ -69,5 +69,13 @@ function calcX(s){const x=smOf(s);if(!x.on){const r=calc(s);r.sm=x;return r}
  r.smBoxes=x.boxes*T;r.smGross=x.gross*T;r.smRev=x.rev*T;r.smBoxC=x.boxC*T;r.smNet=x.netRev*T;r.smC=(r.smKg*s.raw-r.smNet)/T;   // تكلفة السوبرماركت ج/طن = خامه − صافي بيعه بعد الصندوق
  r.smGain=x.gain;r.rawT=r.buy+r.lossC+r.cullC+r.smC;r.ton=r.rawT+r.pkgC+r.supT+r.wash;r.kg=r.ton/1000;r.perPkg=r.kg*r.pkgW;r.cont=r.ton*T;
  const dl=r.rawT-raw2;r.cmp.forEach(c=>c.v+=dl);return r}
-var CORE={DEF:DEF,calc:calc,calcX:calcX,smOf:smOf,smState:smState,SM_DEF:SM_DEF,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore};
+/* عبوات وأصناف مضافة في التحديثات من غير تعديل DEF/calc الأصليين.
+  ensureCostsCatalog بيلزّقهم في القايمة المحفوظة لو الاسم مش موجود، من غير ما يغيّر أسعار أو أوزان العبوات القديمة. */
+var EXTRA_PK=[['صندوق بلاستيك 5 ك ملوّن',13,5,200],['صندوق بلاستيك 2.5 ك ملوّن',11,2.5,400]];
+var EXTRA_VAR=[['أفندي',1800]];
+function ensureCostsCatalog(s){if(!s||typeof s!=='object')return false;var ch=false;
+ if(Array.isArray(s.pk))EXTRA_PK.forEach(function(p){if(!s.pk.some(function(x){return x&&x[0]===p[0]})){s.pk.push(p.slice());ch=true}});
+ if(Array.isArray(s.var)&&!s.var.some(function(v){return v&&v[0]==='أفندي'})){s.var.push(['أفندي',1800]);ch=true}
+ return ch}
+var CORE={DEF:DEF,calc:calc,calcX:calcX,smOf:smOf,smState:smState,SM_DEF:SM_DEF,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore,ensureCostsCatalog:ensureCostsCatalog,EXTRA_PK:EXTRA_PK,EXTRA_VAR:EXTRA_VAR};
 if(typeof module!=='undefined')module.exports=CORE;
