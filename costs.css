@@ -197,3 +197,26 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .mixc.tot{border-bottom:0;border-top:1.5px solid #111;font-weight:800}
 .decblend{background:#f7f7f5;border:1px solid #e4e4e0;border-radius:12px;padding:10px 12px;margin:8px 0;font-size:13.5px;line-height:1.55;font-weight:600}
 .decblend b{display:block;font-size:14.5px;margin-bottom:2px}
+/* v2.7.0 — ترتيب الشكل: كروت مرقّمة زي القرار، نتيجة ثابتة فوق، خانات متساوية، جداول مطوية */
+.stick{position:sticky;top:0;z-index:20;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;background:#111;color:#fff;border-radius:14px;padding:8px 12px;margin:0 0 12px;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
+.stick>span{font-size:12.5px;color:#ccc;font-weight:700;flex-basis:100%}.stick>b{font-size:26px;font-weight:900;line-height:1.15}.stick>b i{font-style:normal;font-size:15px;margin-inline-start:3px}.stick>em{font-style:normal;font-size:16px;color:#ddd;font-weight:800;margin-inline-start:auto}
+.stick:empty{display:none}
+h2.cn{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:900;margin:0 0 10px}h2.cn i{font-style:normal;font-size:22px;line-height:1}
+h2.cn.top{margin:18px 4px 10px}
+.cg .vars{margin-bottom:10px}.cg .lblrow{margin:0 0 6px;padding:0}.cg .lblrow small{font-weight:500;color:var(--mut)}
+.cg .grid .f label{min-height:2.6em;display:flex;align-items:flex-end;line-height:1.3}
+.cg .grid .f .in input{font-size:18px}
+#inputs .f:has(input[data-k="raw"]){order:-1;grid-column:1/-1}#inputs .f:has(input[data-k="raw"]) label{min-height:0;font-size:15px;font-weight:800}#inputs .f:has(input[data-k="raw"]) input{font-size:24px;font-weight:900}
+#inputs .f.full{order:5;grid-column:1/-1}#inputs .f.full label{min-height:0}
+.cg .mixcard{border:1px dashed var(--line);box-shadow:none;margin:6px 0 12px;padding:12px}
+details.adv{border-top:1px solid var(--line);margin-top:10px;padding-top:4px}details.adv>summary{list-style:none;cursor:pointer;display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-weight:800;font-size:15.5px;padding:8px 0}
+details.adv>summary::-webkit-details-marker{display:none}details.adv>summary::before{content:'▸';font-size:14px;transition:transform .15s}details.adv[open]>summary::before{transform:rotate(90deg)}
+details.adv>summary small{font-weight:500;color:var(--mut);font-size:12.5px}details.adv>summary b{margin-inline-start:auto;font-size:14px;color:var(--ink2)}
+details.card.adv{border-top:1px solid var(--line);padding:6px 16px;margin-top:0}details.card.adv>summary{font-size:17px}details.card.adv[open]{padding-bottom:14px}
+details.card.adv h2{display:none}
+.cg5 .actions{margin:0 0 14px}
+@media print{.stick{display:none}}
+#inputs2 .f:has(input[data-k="cullP"]){order:2}
+details.smwrap:has(#smCard[hidden]){display:none}details.smwrap .smcard{padding:0;border:0;margin:0}details.smwrap .smcard>h2:first-child{display:none}
+h2.cn{justify-content:flex-start}
+.cg .mixcard .mixbar{flex-direction:column;align-items:stretch;gap:8px}.cg .mixcard .mixhint{font-size:13px}

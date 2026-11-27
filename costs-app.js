@@ -1,5 +1,5 @@
 /* تكاليف الموالح — الواجهة والتقرير (v2.2.0: + محلي سوبرماركت بدل جزء من الفرزة، calcX في costs-core.js). الحساب كله من calc() الأصلية في core.js */
-const VER='2.6.0';
+const VER='2.7.0';
 /* calcX = calc الأصلية + فرق السوبرماركت (لو النسبة صفر = calc بالظبط). لو ملف قديم في الكاش من غير calcX، نرجع لـ calc */
 const CALC=typeof calcMix==='function'?calcMix:(typeof calcX==='function'?calcX:calc);const SMON=()=>typeof smState==='function';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي (منسوخ حرفيًا) */
@@ -38,9 +38,11 @@ const FIELDS=[['sec','الأسعار'],['usd','سعر الدولار','ج'],['sa
 const PCT={loss:1,cull:1,pw:1};
 function shown(k){const key='k:'+k;if(key in DR)return DR[key];return PCT[k]?+(S[k]*100).toFixed(4):S[k]}
 function renderInputs(){let h='<div class="f full"><label>تاريخ الحساب</label><div class="in'+(ERR.date?' bad':'')+'"><input data-date="1" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="يوم/شهر/سنة" aria-label="تاريخ الحساب يوم/شهر/سنة" value="'+esc(dateShown())+'"></div>'+(ERR.date?'<div class="emsg" data-for="date">'+esc(ERR.date)+'</div>':'')+'<div class="hint">ميلادي — يوم/شهر/سنة</div></div>';
- FIELDS.forEach(x=>{if(x[0]=='sec'){h+='<div class="sec">'+x[1]+'</div>';return}
-  h+='<div class="f"><label>'+x[1]+'</label><div class="in'+(ERR['k:'+x[0]]?' bad':'')+'"><input inputmode="decimal" data-k="'+x[0]+'" value="'+esc(shown(x[0]))+'"><span class="u">'+x[2]+'</span></div>'+(ERR['k:'+x[0]]?'<div class="emsg" data-for="k:'+x[0]+'">'+ERR['k:'+x[0]]+'</div>':'')+(x[0]=='raw'?'<div class="hint rawhint">سعر خام «'+esc(S.variety)+'» — كل صنف بيفتكر سعر خامه، والصوافي بتاخد تكلفة الطن منه تلقائي</div>':'')+'</div>'});
- $('#inputs').innerHTML=h}
+ /* v2.7.0 (الشكل بس): لو الصفحة فيها كروت ②③ الخانات بتتوزع عليها بنفس الترتيب ونفس data-k */
+ const G=document.getElementById('inputs2')&&document.getElementById('inputs3'),GRP={loss:2,cull:2,cullP:2,net:3,pw:3},hh={2:'',3:''};
+ FIELDS.forEach(x=>{if(x[0]=='sec'){if(!G)h+='<div class="sec">'+x[1]+'</div>';return}
+  const add=v=>{if(G&&GRP[x[0]])hh[GRP[x[0]]]+=v;else h+=v};add('<div class="f"><label>'+x[1]+'</label><div class="in'+(ERR['k:'+x[0]]?' bad':'')+'"><input inputmode="decimal" data-k="'+x[0]+'" value="'+esc(shown(x[0]))+'"><span class="u">'+x[2]+'</span></div>'+(ERR['k:'+x[0]]?'<div class="emsg" data-for="k:'+x[0]+'">'+ERR['k:'+x[0]]+'</div>':'')+(x[0]=='raw'?'<div class="hint rawhint">سعر خام «'+esc(S.variety)+'» — كل صنف بيفتكر سعر خامه، والصوافي بتاخد تكلفة الطن منه تلقائي</div>':'')+'</div>')});
+ $('#inputs').innerHTML=h;if(G){$('#inputs2').innerHTML=hh[2];$('#inputs3').innerHTML=hh[3]}}
 function cell(key,val,cls){const bad=ERR[key];return '<input class="'+(cls||'')+(bad?' bad':'')+'" '+(cls=='v'?'inputmode="decimal" ':'')+'data-t="'+key+'" value="'+esc(key in DR?DR[key]:val)+'">'}
 function renderTables(){
  $('#pkt').innerHTML='<div class="trow th pk4"><span>العبوة</span><span>السعر ج</span><span>الصافي كجم</span><span>صندوق/باليت</span></div>'+S.pk.map((p,i)=>'<div class="trow pk4">'+cell('pk:'+i+':0',p[0])+cell('pk:'+i+':1',p[1],'v')+cell('pk:'+i+':2',p[2],'v')+cell('pk:'+i+':3',p[3]||'','v')+'</div>').join('');

@@ -212,6 +212,29 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .mixc.tot{border-bottom:0;border-top:1.5px solid #111;font-weight:800}
 .decblend{background:#f7f7f5;border:1px solid #e4e4e0;border-radius:12px;padding:10px 12px;margin:8px 0;font-size:13.5px;line-height:1.55;font-weight:600}
 .decblend b{display:block;font-size:14.5px;margin-bottom:2px}
+/* v2.7.0 — ترتيب الشكل: كروت مرقّمة زي القرار، نتيجة ثابتة فوق، خانات متساوية، جداول مطوية */
+.stick{position:sticky;top:0;z-index:20;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;background:#111;color:#fff;border-radius:14px;padding:8px 12px;margin:0 0 12px;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
+.stick>span{font-size:12.5px;color:#ccc;font-weight:700;flex-basis:100%}.stick>b{font-size:26px;font-weight:900;line-height:1.15}.stick>b i{font-style:normal;font-size:15px;margin-inline-start:3px}.stick>em{font-style:normal;font-size:16px;color:#ddd;font-weight:800;margin-inline-start:auto}
+.stick:empty{display:none}
+h2.cn{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:900;margin:0 0 10px}h2.cn i{font-style:normal;font-size:22px;line-height:1}
+h2.cn.top{margin:18px 4px 10px}
+.cg .vars{margin-bottom:10px}.cg .lblrow{margin:0 0 6px;padding:0}.cg .lblrow small{font-weight:500;color:var(--mut)}
+.cg .grid .f label{min-height:2.6em;display:flex;align-items:flex-end;line-height:1.3}
+.cg .grid .f .in input{font-size:18px}
+#inputs .f:has(input[data-k="raw"]){order:-1;grid-column:1/-1}#inputs .f:has(input[data-k="raw"]) label{min-height:0;font-size:15px;font-weight:800}#inputs .f:has(input[data-k="raw"]) input{font-size:24px;font-weight:900}
+#inputs .f.full{order:5;grid-column:1/-1}#inputs .f.full label{min-height:0}
+.cg .mixcard{border:1px dashed var(--line);box-shadow:none;margin:6px 0 12px;padding:12px}
+details.adv{border-top:1px solid var(--line);margin-top:10px;padding-top:4px}details.adv>summary{list-style:none;cursor:pointer;display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-weight:800;font-size:15.5px;padding:8px 0}
+details.adv>summary::-webkit-details-marker{display:none}details.adv>summary::before{content:'▸';font-size:14px;transition:transform .15s}details.adv[open]>summary::before{transform:rotate(90deg)}
+details.adv>summary small{font-weight:500;color:var(--mut);font-size:12.5px}details.adv>summary b{margin-inline-start:auto;font-size:14px;color:var(--ink2)}
+details.card.adv{border-top:1px solid var(--line);padding:6px 16px;margin-top:0}details.card.adv>summary{font-size:17px}details.card.adv[open]{padding-bottom:14px}
+details.card.adv h2{display:none}
+.cg5 .actions{margin:0 0 14px}
+@media print{.stick{display:none}}
+#inputs2 .f:has(input[data-k="cullP"]){order:2}
+details.smwrap:has(#smCard[hidden]){display:none}details.smwrap .smcard{padding:0;border:0;margin:0}details.smwrap .smcard>h2:first-child{display:none}
+h2.cn{justify-content:flex-start}
+.cg .mixcard .mixbar{flex-direction:column;align-items:stretch;gap:8px}.cg .mixcard .mixhint{font-size:13px}
 </style>
 <style>/* «القرار في الاتجاهين» — الشاشة بس */
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
@@ -292,53 +315,68 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
   <div class="brand"><h1>تكاليف الموالح</h1><span class="sub">تكلفة طن الموالح الصافي ظهر الحاوية</span></div>
   <div class="tr"><span id="net" class="net"></span><span id="ls" class="ls"></span></div>
  </header>
- <div class="lblrow">الصنف</div>
- <nav id="vars" class="vars" aria-label="الصنف"></nav>
- <div class="lblrow">العبوة</div>
- <nav id="pkgs" class="vars" aria-label="العبوة"></nav>
- <div id="notice" class="notice" hidden></div>
- <section class="card sum" id="sum"></section>
- <section class="card two-card" id="costsDec"></section>
- <div class="actions">
-  <button class="btn pri" id="bReport">عرض التقرير</button>
-  <button class="btn" id="bShare">PDF / واتساب</button>
-  <button class="btn" id="bPrint">طباعة</button>
- </div>
- <section class="card" id="mojmal"></section>
- <section class="card" id="cmp"></section>
- <section class="card">
-  <h2>بيانات الحساب</h2>
+ <!-- v2.7.0: ترتيب الشكل بس (طلب أمير «ورتب كمان التكاليف الشكل») — نفس الخانات ونفس الحساب -->
+ <div id="stick" class="stick" role="button" tabindex="0" aria-label="النتيجة"></div>
+ <section class="card cg" id="g1">
+  <h2 class="cn"><i>①</i> الصنف وسعر الخام</h2>
+  <nav id="vars" class="vars" aria-label="الصنف"></nav>
+  <div id="notice" class="notice" hidden></div>
   <div class="grid" id="inputs"></div>
  </section>
- <section class="card smcard" id="smCard" hidden></section>
- <section class="card" id="detail"></section>
- <section class="card">
-  <h2>أسعار العبوات</h2>
-  <div id="pkt"></div>
-  <button class="btn ghost wide" id="bAddPk">+ إضافة عبوة جديدة</button>
-  <div id="pkAdd" class="pkform" hidden>
-   <div class="pkform-h">عبوة جديدة</div>
-   <label>اسم العبوة<input data-npk="n" placeholder="مثال: صندوق بلاستيك 5 ك ملوّن" autocomplete="off"></label>
-   <div class="pkform-row">
-    <label>الصافي كجم<input class="v" data-npk="w" inputmode="decimal" placeholder="5" dir="ltr"></label>
-    <label>صناديق / باليت<input class="v" data-npk="b" inputmode="decimal" placeholder="200" dir="ltr"></label>
-    <label>السعر ج<input class="v" data-npk="p" inputmode="decimal" placeholder="اختياري" dir="ltr"></label>
+ <section class="card cg" id="g2">
+  <h2 class="cn"><i>②</i> الفرز والهالك</h2>
+  <div class="grid" id="inputs2"></div>
+ </section>
+ <details class="card adv big smwrap" id="advSm"><summary>محلي سوبرماركت <small>فرزة مقاسات صغيرة في صندوق</small> <b id="smSum"></b></summary><section class="smcard" id="smCard" hidden></section></details>
+ <section class="card cg" id="g3">
+  <h2 class="cn"><i>③</i> العبوات والخلطة</h2>
+  <div class="lblrow">العبوة <small>اختار واحدة أو أكتر للخلطة</small></div>
+  <nav id="pkgs" class="vars" aria-label="العبوة"></nav>
+  <div class="grid" id="inputs3"></div>
+  <details class="adv" id="advPk">
+   <summary>أسعار العبوات <small>السعر · الصافي · صندوق/باليت</small></summary>
+   <div id="pkt"></div>
+   <button class="btn ghost wide" id="bAddPk">+ إضافة عبوة جديدة</button>
+   <div id="pkAdd" class="pkform" hidden>
+    <div class="pkform-h">عبوة جديدة</div>
+    <label>اسم العبوة<input data-npk="n" placeholder="مثال: صندوق بلاستيك 5 ك ملوّن" autocomplete="off"></label>
+    <div class="pkform-row">
+     <label>الصافي كجم<input class="v" data-npk="w" inputmode="decimal" placeholder="5" dir="ltr"></label>
+     <label>صناديق / باليت<input class="v" data-npk="b" inputmode="decimal" placeholder="200" dir="ltr"></label>
+     <label>السعر ج<input class="v" data-npk="p" inputmode="decimal" placeholder="اختياري" dir="ltr"></label>
+    </div>
+    <div class="pkform-act">
+     <button class="btn pri" id="bPkOk" type="button">إضافة</button>
+     <button class="btn ghost" id="bPkCancel" type="button">إلغاء</button>
+    </div>
    </div>
-   <div class="pkform-act">
-    <button class="btn pri" id="bPkOk" type="button">إضافة</button>
-    <button class="btn ghost" id="bPkCancel" type="button">إلغاء</button>
-   </div>
+  </details>
+ </section>
+ <section class="card cg" id="g4">
+  <h2 class="cn"><i>④</i> المستلزمات والغسيل</h2>
+  <details class="adv" id="advSup">
+   <summary>مستلزمات الإنتاج <small>ج / طن صافي</small> <b class="num" id="supSum"></b></summary>
+   <div id="supt"></div>
+  </details>
+  <details class="adv" id="advVar">
+   <summary>غسيل المحطة لكل صنف <small>ج / طن</small> <b class="num" id="washSum"></b></summary>
+   <div id="vart"></div>
+   <button class="btn ghost wide" id="bAddVar">+ إضافة صنف</button>
+  </details>
+ </section>
+ <section class="cg5" id="g5">
+  <h2 class="cn top"><i>⑤</i> النتيجة</h2>
+  <section class="card sum" id="sum"></section>
+  <section class="card" id="mojmal"></section>
+  <div class="actions">
+   <button class="btn pri" id="bReport">عرض التقرير</button>
+   <button class="btn" id="bShare">PDF / واتساب</button>
+   <button class="btn" id="bPrint">طباعة</button>
   </div>
+  <details class="card adv big" id="advCmp"><summary>مقارنة العبوات</summary><section id="cmp"></section></details>
+  <details class="card adv big" id="advDet"><summary>التفاصيل خطوة بخطوة</summary><section id="detail"></section></details>
  </section>
- <section class="card">
-  <h2>مستلزمات الإنتاج <small>ج / طن صافي</small></h2>
-  <div id="supt"></div>
- </section>
- <section class="card">
-  <h2>غسيل المحطة لكل صنف <small>ج / طن</small></h2>
-  <div id="vart"></div>
-  <button class="btn ghost wide" id="bAddVar">+ إضافة صنف</button>
- </section>
+ <section class="card two-card" id="costsDec"></section>
  <section class="card tools">
   <button class="btn ghost" id="bCostsImport">استيراد من برنامج التكاليف القديم</button>
   <button class="btn ghost" id="bCostsExport">تصدير بيانات التكاليف</button>
@@ -360,7 +398,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="nav.js?v=231"></script>
 <script src="costs-core.js?v=231"></script>
 <script src="pdf-share.js"></script>
-<script src="costs-app.js?v=260"></script>
+<script src="costs-app.js?v=270"></script>
 <script src="be-core.js?v=260"></script>
 <script src="costs-io.js?v=230"></script>
 <script src="exp-migrate.js?v=201"></script>
@@ -369,8 +407,9 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="be-ship.js?v=260"></script>
 <script src="be-two.js?v=260"></script>
 <script src="costs-two.js?v=260"></script>
+<script src="costs-layout.js?v=270"></script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=260').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=270').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>
 </body>
 </html>
