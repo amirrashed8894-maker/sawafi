@@ -31,7 +31,7 @@ const shot=async(pg,name,sel)=>{if(!SHOTS)return;const el=sel?await pg.$(sel):nu
  assert.strictEqual(num(await s.inputValue(costIn(0))),yShown,'يوسفي = التكاليف');assert.strictEqual(num(await s.inputValue(costIn(1))),oShown,'أبوسرة = التكاليف');
  assert.match(await s.textContent('[data-achost="0"]'),/تلقائي من التكاليف/);
  // الربح للطن = صافي الطن ج − التكلفة (حساب مستقل بـ calc الأصلية)
- const chk=async()=>{const st=await s.evaluate(()=>JSON.parse(JSON.stringify(SFAPP.state())));const r=SC.calc(st);const src=st.lines.filter(l=>+l[2]);
+ const chk=async()=>{const st=await s.evaluate(()=>JSON.parse(JSON.stringify(SFAPP.state())));const SHC=require('../ship-cont.js'),nC=SHC.contN(SHC.palOf(st),21);const r=SC.calc(SHC.scale(st,nC));const src=st.lines.filter(l=>+l[2]);   // v2.8.0: النولون والمصروفات × عدد الحاويات
   for(let i=0;i<2;i++){const want=r.lines[i].nt*st.egp-src[i][6];const txt=await s.textContent('[data-pl="'+i+'"] b');const got=num(txt)*(/خسارة/.test(txt)?-1:1);assert.ok(Math.abs(got-Math.round(want*100)/100)<0.006,'pl '+i+' '+got+' vs '+want)}return st};
  const st1=await chk();
  await shot(s,'02_safi_auto_filled','[data-line="0"]');

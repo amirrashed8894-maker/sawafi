@@ -267,6 +267,12 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .acb.re:active{opacity:.7}
 @media print{.acb{display:none!important}}
 .ltBox{display:block;font-size:12px;color:var(--mut,#777);font-weight:700}.ltBox.warn{color:#b45309}
+/* v2.8.0 — بند المصروفات: لكل حاوية / مرة للشحنة */
+#et .ln .r1{grid-template-columns:minmax(0,1fr) auto 38px}
+.xon{border:1px solid var(--line,#ddd);background:#fff;border-radius:10px;height:38px;padding:0 10px;font:inherit;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.xon.on{background:#111;color:#fff;border-color:#111}
+.expN{margin-top:8px;line-height:1.7}
+.xn{display:block;font-size:12px;color:var(--ink2,#64748b);font-weight:400}
 </style>
 <style>/* «القرار في الاتجاهين» — الشاشة بس */
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
@@ -374,18 +380,19 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="pinned.js"></script>
 <script src="exp-migrate.js?v=201"></script>
 <script src="sizes.js?v=2"></script>
-<script src="be-core.js?v=260"></script>
-<script src="be-two.js?v=260"></script>
+<script src="ship-cont.js?v=280"></script>
+<script src="be-core.js?v=280"></script>
+<script src="be-two.js?v=280"></script>
 <script src="costs-calc.js?v=240"></script>
 <script src="safi-autocost.js?v=240"></script>
 <script src="be-mx.js?v=250"></script>
-<script src="be-ship.js?v=260"></script>
-<script src="decision.js?v=260"></script>
+<script src="be-ship.js?v=280"></script>
+<script src="decision.js?v=280"></script>
 <script src="decision-mx.js?v=260"></script>
 <script src="pdf-share.js"></script>
-<script src="decision-report.js?v=220"></script>
+<script src="decision-report.js?v=280"></script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=270').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=280').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
    الخانات الرئيسية (الدولار الموحّد، نولون الحاوية، سعر الخام النهارده) بتتكتب في القسم صاحبها فورًا، فالأرقام واحدة في كل مكان.
    إعدادات القرار نفسها في decision.v1 (+ نسخة .mirror + IndexedDB). الحاوية الأساسي والبراد فرعي. */
 (function(){'use strict';
-const VER2='2.6.0';const K=BE.KEYS;const FXK='fx.v1';
+const VER2='2.8.0';const K=BE.KEYS;const FXK='fx.v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fe=(x,d)=>x==null||!isFinite(x)?'—':f(x,d==null?2:d);
@@ -43,7 +43,7 @@ function setFx(v){writeSafi(S=>{S.egp=v});writeCosts(S=>{S.usd=v});lsSet(FXK,JSO
 function migrateOnce(){if(lsGet('decision.migr.fc2800'))return;const sf=readSafi();if(sf.src!=='fresh'&&!(+sf.S.fC>0)){writeSafi(S=>{S.fC=BE.ASSUME.fC});NOTE='نولون الحاوية كان مش متدخل في الصوافي، فاتكتب 2,800$ (رقمك الحالي) — تقدر تغيّره من هنا.'}lsSet('decision.migr.fc2800','1')}
 /* v2.1.1: لو الملفات المتخزّنة على الجهاز متلخبطة (نسخة قديمة من be-core.js مع decision.js جديد — من الـ CDN وقت التحديث)
    نمسح الكاش مرة واحدة ونحدّث الـ service worker ونعيد التحميل. البيانات (localStorage/IndexedDB) ما بتتلمسش. */
-(function selfHeal(){const ok=typeof BE.twoWay==='function'&&typeof BE.planN==='function'&&BE.VER===VER2&&typeof window.BETwo==='object';if(ok){try{sessionStorage.removeItem('dec.heal')}catch(e){}return}
+(function selfHeal(){const ok=typeof BE.twoWay==='function'&&typeof BE.planN==='function'&&BE.VER===VER2&&typeof window.BETwo==='object'&&typeof window.SHIPC==='object';if(ok){try{sessionStorage.removeItem('dec.heal')}catch(e){}return}
  let n=0;try{n=+sessionStorage.getItem('dec.heal')||0}catch(e){}if(n>=2)return;try{sessionStorage.setItem('dec.heal',String(n+1))}catch(e){}
  const done=()=>location.reload();const sw=navigator.serviceWorker;
  Promise.resolve().then(()=>window.caches?caches.keys().then(k=>Promise.all(k.filter(x=>x.indexOf('sawafi-')===0).map(x=>caches.delete(x)))):0)
@@ -96,7 +96,7 @@ function render(){load();renderInputs();const R=DEC;
   '<div class="hint be-how">الحساب: صافي الطن = سعر الكرتونة × (1 − العمولة) × عدد الكراتين في الطن ÷ ريال/$ × ج/$ − نصيب الطن من مصروفات ونولون الشحنة (نفس الصوافي). '+
   'سعر الخام للتعادل = (صافي الطن − العبوات − المستلزمات − الغسيل + الفرزة المباعة محلي) ÷ الكيلوهات الخام اللي بتطلع طن صافي (نفس التكاليف). أحسن توزيع = أعلى سعر خام ممكن (Dinkelbach + Simplex).</div>';
  document.querySelectorAll('select[data-hs]').forEach(s=>{const v=get(s.dataset.hs);s.value=v==null?'':String(v);if(s.value!==String(v==null?'':v))s.selectedIndex=0});
- $('#ver').textContent='· v2.7.0';showSaved();live()}
+ $('#ver').textContent='· v2.8.0';showSaved();live()}
 function get(path){const a=path.split('.');let o=DEC;for(const k of a){if(o==null)return null;o=o[k]}return o}
 function set(path,v){const a=path.split('.');let o=DEC;for(let i=0;i<a.length-1;i++)o=o[a[i]];o[a[a.length-1]]=v}
 function planFor(mode){if(typeof BE.planN==='function')return BE.planN(DEC,mode);const n=DEC.items.map(it=>+it.pal||0);if(mode===DEC.base)return n;const tot=n.reduce((a,b)=>a+b,0),cap=+DEC.cap[mode]||0;return tot?n.map(v=>v*cap/tot):n}
@@ -108,14 +108,14 @@ function renderQuick(){const q=$('#quick');if(!q)return;let Q;try{const o=mxOpt(
  const capB=+DEC.cap[base]||0,unit=base==='حاوية'?'حاوية':'براد';
  const head='<div class="qk-h"><b>قرار الشراء السريع</b><span>خام كل صنف من التكاليف · أسعار البيع والباليتات من الصوافي</span></div>';
  if(!Q.vars.length){q.innerHTML=head+'<div class="hint">اكتب الأصناف في الصوافي (الباليتات وكراتين الباليت وسعر البيع).</div>';return}
- const sum='<div class="qk-s'+(Q.own!=null&&Q.own<0?' neg':'')+'"><span>الشحنة <span class="num">'+f(Q.pal,0)+'</span> باليت'+(Q.boxes?' = <span class="num">'+Q.boxes+'</span> '+unit+' (السعة '+f(capB,0)+')':'')+'</span><b>'+(Q.own==null?'—':plTxt(Q.own)+' ج')+'</b><em>'+(Q.delta==null?'':'هامش '+(Q.delta>=0?'+':'−')+'<span class="num">'+f(Math.abs(Q.delta))+'</span> ج/كجم على كل الخامات')+' · '+bn(oth)+': '+(Q.ownOth==null?'—':plTxt(Q.ownOth)+' ج')+'</em></div>';
+ const sum='<div class="qk-s'+(Q.own!=null&&Q.own<0?' neg':'')+'"><span>الشحنة <span class="num">'+f(Q.pal,0)+'</span> باليت'+(Q.A&&Q.A.plan&&Q.pal?' = <span class="num">'+Q.A.plan.nC+'</span> '+unit+' (السعة '+f(capB,0)+')':'')+'</span><b>'+(Q.own==null?'—':plTxt(Q.own)+' ج')+'</b><em>'+(Q.delta==null?'':'هامش '+(Q.delta>=0?'+':'−')+'<span class="num">'+f(Math.abs(Q.delta))+'</span> ج/كجم على كل الخامات')+' · '+bn(oth)+': '+(Q.ownOth==null?'—':plTxt(Q.ownOth)+' ج')+'</em>'+(Q.A&&Q.A.plan&&Q.pal?'<small class="qk-x">'+esc(SHIPC.text(SHIPC.ofC(Q.A.C,Q.A.plan.nC)))+'</small>':'')+'</div>';
  const rows=Q.vars.map(g=>{const v=g.verdict,m=g.margin;const best=g.best?'<span class="num">'+f(g.best.R)+'</span>':'<small>مش فيه</small>',ob=g.othBest?'<span class="num">'+f(g.othBest.R)+'</span>':'<small>مش فيه</small>';
   const act=v.k==='buy'?'اشتري لحد <b class="num">'+f(g.R)+'</b> ج/كجم':v.k==='neg'?'فاوض لـ <b class="num">'+f(g.rConf)+'</b> ج/كجم أو أقل':'متشتريش بـ <b class="num">'+f(g.raw)+'</b> — التعادل <b class="num">'+f(g.R)+'</b>';
   return '<div class="qk-r '+v.k+'" data-qk="'+esc(g.k)+'"><div class="qk-t"><i class="qk-v">'+v.t+'</i><b>'+esc(g.v)+'</b><small>'+esc(g.pks.join(' + '))+' · <span class="num">'+f(g.pal,0)+'</span> باليت</small></div>'+
    '<div class="qk-a">'+act+'</div>'+
    '<div class="qk-n"><div><span>النهارده</span><b class="num">'+f(g.raw)+'</b></div><div><span>أعلى خام</span><b class="num">'+f(g.R)+'</b></div><div><span>الهامش</span><b class="num '+(m>=0?'ok2':'bad2')+'">'+(m>=0?'+':'−')+f(Math.abs(m))+'</b></div><div><span>احتمال المكسب</span><b>'+pc(g.prob)+'</b></div></div>'+
    '<table class="qk-g"><tr><td></td><td>خطتك</td><td>أحسن توزيع</td></tr><tr><td>'+bn(base)+'</td><td class="num">'+f(g.R)+'</td><td>'+best+'</td></tr><tr><td>'+bn(oth)+'</td><td class="num">'+(g.oth?f(g.oth.R):'—')+'</td><td>'+ob+'</td></tr></table></div>'}).join('');
- q.innerHTML=head+sum+rows+'<div class="hint">ج/كجم خام. أعلى خام = اللي يخلّي ربح الصنف في الشحنة دي صفر (المصروفات على الوزن زي الصوافي). اشتري = احتمال المكسب '+pc(Q.conf)+' أو أكتر، فاوض = بين 50% و'+pc(Q.conf)+' (السعر اللي يوصلك '+pc(Q.conf)+')، متشتريش = أقل من 50%. سعر البيع ممكن يتحرك ± <span class="num">'+f(Q.d)+'</span> ريال (من ⑤). أحسن توزيع = '+f(capB,0)+' باليت.</div>'}
+ q.innerHTML=head+sum+rows+'<div class="hint">ج/كجم خام. أعلى خام = اللي يخلّي ربح الصنف في الشحنة دي صفر (المصروفات على الوزن زي الصوافي). اشتري = احتمال المكسب '+pc(Q.conf)+' أو أكتر، فاوض = بين 50% و'+pc(Q.conf)+' (السعر اللي يوصلك '+pc(Q.conf)+')، متشتريش = أقل من 50%. سعر البيع ممكن يتحرك ± <span class="num">'+f(Q.d)+'</span> ريال (من ⑤). أحسن توزيع = '+f(capB,0)+' باليت في '+unit+' واحدة (نولون ومصروفات '+unit+' واحدة).</div>'}
 function live(){const S=SAFI.S,Cs=COSTS.S,base=DEC.base,oth=OTHER(base);
  const Cb=BE.ctx(S,Cs,DEC,base),Co=BE.ctx(S,Cs,DEC,oth);const nb=planFor(base),no=planFor(oth);const pb=BE.planBE(Cb,DEC.items,nb),po=BE.planBE(Co,DEC.items,no);
  /* v2.6.0: كل صنف بخامه هو من التكاليف — الهامش = ربح الشحنة ÷ (k × الطن) = قد إيه كل الخامات تقدر تزيد لحد التعادل */
@@ -127,7 +127,8 @@ function live(){const S=SAFI.S,Cs=COSTS.S,base=DEC.base,oth=OTHER(base);
  $('#beKpi').innerHTML='<div class="kpis">'+kp(pb,base,true)+kp(po,oth,false)+'<div class="kpi"><span>الفرق '+modeName(base)+' − '+modeName(oth)+'</span><b>'+(pb.R!=null&&po.R!=null?'<span class="num">'+f(pb.R-po.R)+'</span> ج/كجم':'—')+'</b><em>'+(pb.R!=null&&po.R!=null?(pb.R>=po.R?modeName(base)+' أحسن':modeName(oth)+' أحسن'):'')+'</em></div></div>';
  const w=[];const tot=nb.reduce((a,b)=>a+b,0);
  if(Cb.frMissing||Co.frMissing)w.push('⚠ نولون '+[Cb,Co].filter(c=>c.frMissing).map(c=>modeName(c.mode)).join(' و')+' مش متدخل — التعادل محسوب من غير نولون');
- const nbx=Cb.cap>0?Math.ceil(tot/Cb.cap-1e-9):0;if(tot>Cb.cap+1e-9)w.push('⚠ الشحنة '+f(tot,0)+' باليت = '+nbx+' '+(base==='حاوية'?'حاوية':'براد')+' (السعة '+f(Cb.cap,0)+') — النولون والمصروفات محسوبين زي ما هم مكتوبين في الصوافي (مرة واحدة)، لو دول '+nbx+' اكتب إجماليهم في الصوافي');else if(tot&&tot<Cb.cap-1e-9)w.push('الشحنة '+f(tot,0)+' باليت من سعة '+modeName(base)+' '+f(Cb.cap,0)+' — المصروفات متوزعة على '+f(tot,0)+' باليت بس');
+ /* v2.8.0: بدل التحذير — النولون والمصروفات لكل حاوية مضروبين في العدد تلقائي */
+ if(tot>0)w.push('الشحنة '+f(tot,0)+' باليت = '+pb.nC+' '+(base==='حاوية'?'حاوية':'براد')+' (السعة '+f(Cb.cap,0)+') — '+SHIPC.text(SHIPC.ofC(Cb,pb.nC))+(tot<pb.nC*Cb.cap-1e-9?' · المصروفات متوزعة على '+f(tot,0)+' باليت بس':''));
  if(Cb.noClient)w.push('⚠ العميل «'+S.client+'» مش في جدول العملاء — العمولة صفر');
  const seen={};DEC.items.forEach(it=>{const x=BE.item(Cb,it);if(x.missPk&&it.pk&&!seen['p'+it.pk]){seen['p'+it.pk]=1;w.push('⚠ سعر عبوة «'+it.pk+'» مش في التكاليف — محسوب صفر')}if(x.missWash&&it.v&&!seen['w'+it.v]){seen['w'+it.v]=1;w.push('⚠ غسيل «'+it.v+'» مش في التكاليف — محسوب صفر')}});
  $('#beWarn').innerHTML=w.map(esc).join('<br>');
@@ -142,7 +143,7 @@ function live(){const S=SAFI.S,Cs=COSTS.S,base=DEC.base,oth=OTHER(base);
  const ob=BE.optimize(Cb,DEC.items),oo=BE.optimize(Co,DEC.items);
  $('#beOpt').innerHTML=ob.status!=='ok'?'<div class="hint">اكتب صنف واحد على الأقل بسعر وكراتين باليت.</div>':'<div class="bk"><table><tr class="h"><td>الصنف</td><td class="vh">خطتك</td><td class="vh">الأحسن</td></tr>'+DEC.items.map((it,i)=>'<tr><td>'+esc([it.v,it.sz,it.pk].filter(Boolean).join(' · '))+'</td><td class="vh num">'+f(nb[i]||0,0)+'</td><td class="vh num"><b>'+f(ob.ni[i],0)+'</b></td></tr>').join('')+
   '<tr class="s"><td>سعر الخام للتعادل — '+modeName(base)+'</td><td class="vh num">'+fe(pb.R)+'</td><td class="vh num"><b>'+fe(ob.Rint)+'</b></td></tr><tr><td>'+modeName(oth)+' (أحسن توزيع)</td><td class="vh num">'+fe(po.R)+'</td><td class="vh num">'+(oo.status==='ok'?fe(oo.Rint):'—')+'</td></tr></table>'+
-  '<div class="hint">الأحسن = توزيع '+f(Cb.cap,0)+' باليت في '+modeName(base)+' يدّي أعلى سعر خام، مع الحد الأقصى ونسبة المقاس من الفرز لو مكتوبين.'+(ob.full?'':' ⚠ الحدود القصوى مش مكمّلة السعة.')+'</div><button class="btn ghost wide" data-ha="apply">طبّق الأحسن — بيغيّر باليتات الصوافي كمان</button></div>';
+  '<div class="hint">الأحسن = توزيع '+f(Cb.cap,0)+' باليت في '+modeName(base)+' واحدة (نولون ومصروفات '+(base==='حاوية'?'حاوية':'براد')+' واحدة) يدّي أعلى سعر خام، مع الحد الأقصى ونسبة المقاس من الفرز لو مكتوبين.'+(ob.full?'':' ⚠ الحدود القصوى مش مكمّلة السعة.')+'</div><button class="btn ghost wide" data-ha="apply">طبّق الأحسن — بيغيّر باليتات الصوافي كمان</button></div>';
  const sn=BE.sensitivity(S,Cs,DEC,base,DEC.items,nb);
  $('#beSen').innerHTML=sn.base==null?'':'<div class="bk"><table><tr class="h"><td>لو</td><td class="vh">ج/كجم خام</td><td class="vh">الفرق</td></tr>'+sn.rows.map(r=>'<tr><td>'+esc(r.n)+'</td><td class="vh num">'+fe(r.R)+'</td><td class="vh num">'+(r.d==null?'—':(r.d>=0?'+':'')+f(r.d))+'</td></tr>').join('')+'</table></div>';
  const supT=(Cs.sup||[]).reduce((a,x)=>a+(+x[1]||0),0);
@@ -150,8 +151,9 @@ function live(){const S=SAFI.S,Cs=COSTS.S,base=DEC.base,oth=OTHER(base);
   '<tr class="g"><td colspan="2">من الصوافي <a href="safi.html" class="lnk">تعديل ←</a></td></tr>'+
   '<tr><td>العميل والعمولة</td><td class="v">'+esc(S.client)+' · <span class="num">'+f(Cb.comm*100,1)+'%</span></td></tr>'+
   '<tr><td>ريال / دولار</td><td class="v num">'+f(S.sar,4)+'</td></tr>'+
-  '<tr><td>مصروفات الحاوية في السعودية</td><td class="v"><span class="num">'+f(BE.ctx(S,Cs,DEC,'حاوية').expSar)+'</span> ريال</td></tr>'+
-  '<tr><td>مصروفات البراد · نولون البراد</td><td class="v"><span class="num">'+f(BE.ctx(S,Cs,DEC,'براد').expSar)+'</span> · <span class="num">'+f(S.fB)+'</span> ريال</td></tr>'+
+  '<tr><td>مصروفات الحاوية في السعودية <small>لكل حاوية</small></td><td class="v"><span class="num">'+f(BE.ctx(S,Cs,DEC,'حاوية').expPer)+'</span> ريال'+(BE.ctx(S,Cs,DEC,'حاوية').expOnce?' + <span class="num">'+f(BE.ctx(S,Cs,DEC,'حاوية').expOnce)+'</span> مرة للشحنة':'')+'</td></tr>'+
+  '<tr><td>مصروفات البراد · نولون البراد <small>لكل براد</small></td><td class="v"><span class="num">'+f(BE.ctx(S,Cs,DEC,'براد').expPer)+'</span> · <span class="num">'+f(S.fB)+'</span> ريال</td></tr>'+
+  '<tr><td>عدد '+(base==='حاوية'?'الحاويات':'البرادات')+' في الشحنة</td><td class="v sm">'+esc(SHIPC.text(SHIPC.ofC(Cb,pb.nC)))+'</td></tr>'+
   '<tr><td>سعة البراد</td><td class="v"><input class="v sm-in" inputmode="decimal" data-h="cap.براد" value="'+esc(DEC.cap['براد'])+'" aria-label="سعة البراد"> باليت</td></tr>'+
   '<tr class="g"><td colspan="2">من التكاليف <a href="costs.html" class="lnk">تعديل ←</a></td></tr>'+
   '<tr><td>الهالك · الفرزة</td><td class="v"><span class="num">'+f(Cs.loss*100,1)+'%</span> · <span class="num">'+f(Cs.cull*100,1)+'%</span></td></tr>'+

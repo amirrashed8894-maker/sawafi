@@ -252,3 +252,9 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .acb.re:active{opacity:.7}
 @media print{.acb{display:none!important}}
 .ltBox{display:block;font-size:12px;color:var(--mut,#777);font-weight:700}.ltBox.warn{color:#b45309}
+/* v2.8.0 — بند المصروفات: لكل حاوية / مرة للشحنة */
+#et .ln .r1{grid-template-columns:minmax(0,1fr) auto 38px}
+.xon{border:1px solid var(--line,#ddd);background:#fff;border-radius:10px;height:38px;padding:0 10px;font:inherit;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.xon.on{background:#111;color:#fff;border-color:#111}
+.expN{margin-top:8px;line-height:1.7}
+.xn{display:block;font-size:12px;color:var(--ink2,#64748b);font-weight:400}

@@ -20,26 +20,27 @@ async function scenCheck(pg,host){assert.strictEqual(await pg.$$eval(host+' .sc-
 async function run(bt,name,opts){const b=await launch(bt);const ctx=await b.newContext(opts);const pg=await ctx.newPage();const errs=[];
  pg.on('pageerror',e=>errs.push(e.message));pg.on('console',m=>{if(m.type()==='error')errs.push(m.text())});pg.on('dialog',d=>d.accept());
  await pg.goto(URL);await pg.waitForSelector('#twoBody #twoSell');
- assert.deepStrictEqual(await cells(pg,'#twoBody'),[['17.13','17.35'],['15.81','16.01']],'home ①');assert.deepStrictEqual(await bigs(pg,'#twoBody'),['16.49','15.25'],'home ②');
+ /* v2.8.0: خطة 12+11 = 23 باليت > 21 = 2 حاوية → نولون ومصروفات × 2 (حساب يدوي: R = (A − 2×مصروفات) ÷ (k×T) = 6.99)؛ البراد 23 باليت = 1 → 15.25 */
+ assert.deepStrictEqual(await cells(pg,'#twoBody'),[['17.13','17.35'],['15.81','16.01']],'home ①');assert.deepStrictEqual(await bigs(pg,'#twoBody'),['6.99','15.25'],'home ②');assert.match(await pg.textContent('#twoBody'),/النولون 2,800\$ × 2 حاوية/,'home ×2');
  // بارز: فوق الأزرار والتفاصيل، وظاهر في أول شاشة على الديسكتوب
  const y=await pg.$eval('#two',e=>e.getBoundingClientRect().top),yb=await pg.$eval('#be',e=>e.getBoundingClientRect().top);assert.ok(y<yb,'two above details');
  if(OUT&&name==='chromium-desktop'){await pg.screenshot({path:OUT+'two-home-top.png'});}
  if(OUT&&name==='webkit-iphone'){await pg.screenshot({path:OUT+'two-home-iphone.png',fullPage:false});await pg.locator('#two').screenshot({path:OUT+'two-home-iphone-box.png'})}
  // نفس الأرقام = KPI الرئيسية
- assert.ok((await pg.textContent('#beKpi')).includes('16.49'));
+ assert.ok((await pg.textContent('#beKpi')).includes('6.99'));
  await scenCheck(pg,'#twoBody');
  if(OUT&&name==='webkit-iphone'){await pg.locator('#scen').screenshot({path:OUT+'scen-home-iphone.png'})}
  if(OUT&&name==='chromium-desktop'){await pg.locator('#scen').screenshot({path:OUT+'scen-home.png'})}
  // تقرير القرار
  await pg.click('#bDecReport');await pg.waitForSelector('#pages .page');const p1=await pg.$eval('#pages .page',e=>e.innerText);
  const all=await pg.$eval('#pages',e=>e.innerText);['③ التكاليف وأسعار البيع','③ سيناريوهات سعر البيع','191,769','200,492','94,749'].forEach(s=>assert.ok(all.includes(s),'report ③ '+s));
- ['① سعر تعادل البيع','② سعر التعادل لشراء الخام','17.13','15.81','17.35','16.01','16.49','15.25'].forEach(s=>assert.ok(p1.includes(s),'report p1 '+s));
+ ['① سعر تعادل البيع','② سعر التعادل لشراء الخام','17.13','15.81','17.35','16.01','6.99','15.25'].forEach(s=>assert.ok(p1.includes(s),'report p1 '+s));
  const over=await pg.$$eval('#pages .page',L=>L.filter(p=>{const pc=p.querySelector('.pc');const r=pc.getBoundingClientRect(),q=p.getBoundingClientRect();return (r.bottom-q.top)*(1123/q.height)>1123-50}).length);assert.strictEqual(over,0,'report overflow');
  if(OUT&&name==='chromium-desktop'){const L=await pg.$$('#pages .page');await L[0].evaluate(e=>e.style.transform='none');await L[0].screenshot({path:OUT+'two-report-p1.png'})}
  await pg.click('#rClose');
  // التكاليف: نفس الأرقام، وبتتغير وإنت بتكتب سعر الخام
  await pg.click('.appnav a[data-nav="costs"]');await pg.waitForSelector('#costsDec #twoSell');
- assert.deepStrictEqual(await cells(pg,'#costsDec'),[['17.13','17.35'],['15.81','16.01']],'costs ①');assert.deepStrictEqual((await bigs(pg,'#costsDec')),['16.49','15.25'],'costs ②');
+ assert.deepStrictEqual(await cells(pg,'#costsDec'),[['17.13','17.35'],['15.81','16.01']],'costs ①');assert.deepStrictEqual((await bigs(pg,'#costsDec')),['6.99','15.25'],'costs ②');assert.match(await pg.textContent('#costsDec'),/النولون 2,800\$ × 2 حاوية \+ المصروفات 8,500 ريال × 2 حاوية/,'costs ×2');
  await scenCheck(pg,'#costsDec');
  if(OUT&&name==='chromium-desktop'){await pg.locator('#costsDec').screenshot({path:OUT+'two-costs-box.png'})}
  if(OUT&&name==='webkit-iphone'){await pg.locator('#costsDec').screenshot({path:OUT+'two-costs-box-iphone.png'})}
@@ -49,7 +50,7 @@ async function run(bt,name,opts){const b=await launch(bt);const ctx=await b.newC
  await pg.click('.appnav a[data-nav="home"]');await pg.waitForSelector('#twoBody #twoSell');await pg.waitForTimeout(200);assert.deepStrictEqual(await cells(pg,'#twoBody'),c12,'home = costs after raw change');
  await pg.fill('input[data-h="raw"]','10');await pg.waitForTimeout(150);assert.deepStrictEqual((await cells(pg,'#twoBody'))[0],['17.13','17.35']);
  // سعر بيع من الرئيسية ← ② بيتغير في التكاليف
- await pg.fill('input[data-h="items.0.p"]','23');await pg.waitForTimeout(150);const b23=await bigs(pg,'#twoBody');assert.ok(+b23[0]>16.49);
+ await pg.fill('input[data-h="items.0.p"]','23');await pg.waitForTimeout(150);const b23=await bigs(pg,'#twoBody');assert.ok(+b23[0]>6.99);
  await pg.click('.appnav a[data-nav="costs"]');await pg.waitForSelector('#costsDec #twoBuy');assert.deepStrictEqual(await bigs(pg,'#costsDec'),b23,'costs ② = home ②');
  // الصندوق مش في تقرير التكاليف ولا في الطباعة
  await pg.click('#bReport');await pg.waitForSelector('#pages .page');const rt=await pg.$eval('#pages',e=>e.innerText);['سعر تعادل البيع','سعر التعادل لشراء الخام','قرار','سيناريوهات','③'].forEach(s=>assert.ok(!rt.includes(s),'costs report must not include '+s));await pg.click('#rClose');

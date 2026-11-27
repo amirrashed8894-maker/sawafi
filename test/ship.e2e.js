@@ -30,7 +30,8 @@ const its=pg=>pg.evaluate(()=>DECAPP.state().dec.items.map(x=>[x.v,x.pk,x.pal,x.
  const sl=await ls(pg,'safiNetback.v2');const c0=await pg.textContent('[data-bc="0"] b'),c1=await pg.textContent('[data-bc="1"] b');
  assert.strictEqual(num(c0),+sl.lines[0][6]);assert.strictEqual(num(c1),+sl.lines[1][6]);assert.strictEqual(+sl.lines[0][6],16304.63);assert.strictEqual(+sl.lines[1][6],21380.1);
  /* 3) القرار السريع: نفس الحساب اليدوي (test/be-ship.test.js) */
- const q=await pg.textContent('#quick');assert.match(q,/اشتري لحد 19\.86/);assert.match(q,/اشتري لحد 14\.00/);assert.match(q,/283,926|283,925\.83/);assert.match(q,/= 2 حاوية/);
+ const q=await pg.textContent('#quick');assert.match(q,/اشتري لحد 12\.92/);assert.match(q,/متشتريش بـ 11\.75 — التعادل 7\.06/);assert.match(q,/13,075\.44/);assert.match(q,/= 2 حاوية/);   // v2.8.0: النولون والمصروفات × 2 حاوية
+ assert.match(q,/النولون 2,800\$ × 2 حاوية \+ المصروفات 8,500 ريال × 2 حاوية = 38,037\.52 ريال/);
  if(SHOTS&&bt===webkit)await shot(pg,'#quick','decision_v26_01_quick');
  /* 4) تعديل في القرار ← الصوافي */
  await pg.fill('input[data-h="items.0.pal"]','15');await pg.waitForTimeout(150);let s2=await ls(pg,'safiNetback.v2');assert.strictEqual(s2.lines[0][4],15);assert.strictEqual(s2.lines[0][2],3000);
@@ -38,6 +39,11 @@ const its=pg=>pg.evaluate(()=>DECAPP.state().dec.items.map(x=>[x.v,x.pk,x.pal,x.
  /* 5) الصوافي في تاب تاني: بتظهر نفس الأرقام، والتعديل هناك يوصل للقرار المفتوح (storage) */
  const sp=await ctx.newPage();watch(sp);await sp.goto(URL+'safi.html');await sp.waitForSelector('input[data-t="lines:0:4"]');
  assert.strictEqual(await sp.inputValue('input[data-t="lines:0:4"]'),'15');assert.strictEqual(await sp.inputValue('input[data-t="lines:1:3"]'),'19');assert.match(await sp.textContent('#ltTot'),/26 باليت/);assert.match(await sp.textContent('#ltTot'),/2 حاوية/);
+ /* v2.8.0: الصوافي بتضرب النولون والمصروفات × 2 حاوية، وربح الشحنة = القرار */
+ assert.match(await sp.textContent('#ltTot'),/النولون 2,800\$ × 2 حاوية \+ المصروفات 8,500 ريال × 2 حاوية/);assert.match(await sp.textContent('#expN'),/× 2 حاوية/);
+ {const a1=await sp.evaluate(()=>{const r=SFAPP.result();return {pl:r.plShip,fr:r.frV,ex:r.expV,n:SFAPP.contInfo().n}});await pg.bringToFront();await pg.waitForFunction(()=>DECAPP.state().dec.items[0].pal===15,null,{timeout:5000});
+  const a2=await pg.evaluate(()=>{const st=DECAPP.state();const A=BESHIP.analyze(BE,BE.ctx(st.safi,st.costs,st.dec,'حاوية'),st.dec.items,st.dec.items.map(x=>x.pal));return {own:A.own,n:A.plan.nC,sh:A.plan.sharedSar}});
+  assert.strictEqual(a1.n,2);assert.strictEqual(a2.n,2);assert.ok(Math.abs(-(a1.fr+a1.ex)-a2.sh)<1e-6,'مصروفات '+JSON.stringify([a1,a2]));assert.ok(Math.abs(a1.pl-a2.own)<1,'ربح الصوافي = القرار '+a1.pl+' '+a2.own);await sp.bringToFront()}
  assert.strictEqual(num(await sp.inputValue('input[data-t="lines:0:6"]')),num(c0));
  await sp.fill('input[data-t="lines:1:4"]','6');await sp.waitForTimeout(150);await sp.fill('input[data-t="lines:0:5"]','210');await sp.waitForTimeout(300);
  await pg.waitForFunction(()=>DECAPP.state().dec.items[1].pal===6&&DECAPP.state().dec.items[0].cpp===210,null,{timeout:5000});

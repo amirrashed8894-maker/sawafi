@@ -18,6 +18,9 @@ function readSafi(tpl,pinned){for(const k of ['safiNetback.v2','safiNetback.v2.m
 function readDec(BE){for(const k of ['decision.v1','decision.v1.mirror']){const u=unwrap(lsGet(k));if(u&&u.S&&typeof u.S==='object')return BE.decFrom(u.S)}return BE.decFrom(null)}
 /* tw = BE.twoWay(...)؛ o.compact = صندوق قسم التكاليف */
 function rawList(its){const L=[];(its||[]).forEach(x=>{if(x.raw==null)return;const t=esc(x.v||'—')+' '+N(x.raw);if(L.indexOf(t)<0)L.push(t)});return L.join(' · ')||'—'}
+/* v2.8.0: النولون والمصروفات لكل حاوية × عدد الحاويات في الخطة */
+function contLine(tw){const SC=root.SHIPC;if(!SC)return '';const L=[tw.base,tw.sec].filter(M=>M&&M.C&&M.p&&M.p.T>0).map(M=>'<b>'+modeName(M.m)+'</b> '+N(M.p.pal,0)+' باليت = '+N(M.p.nC,0)+': '+esc(SC.text(SC.ofC(M.C,M.p.nC))));
+ return L.length?'<div class="hint two-ct">'+L.join('<br>')+'</div>':''}
 function html(tw,o){o=o||{};const A=tw.base,B=tw.sec,raw=tw.raw;const its=A.items;
  const rows=its.map((x,i)=>{const y=B.items[i];const ok=x.ok&&x.p>0;const good=ok&&x.gap>=0;
   return '<tr data-two="'+i+'"><td>'+esc(label(x)||'—')+'<small>'+esc(x.pk)+'</small></td><td class="vh num two-a"><b>'+nf(x.minP)+'</b></td><td class="vh num two-b">'+nf(y.minP)+'</td><td class="vh">'+(ok?'<span class="num">'+nf(x.p)+'</span> <em class="'+(good?'ok2':'bad2')+'">'+(good?'✓ ':'✗ ')+'<span class="num">'+(x.gap>=0?'+':'')+nf(x.gap)+'</span></em>':'—')+'</td></tr>'}).join('');
@@ -29,7 +32,7 @@ function html(tw,o){o=o||{};const A=tw.base,B=tw.sec,raw=tw.raw;const its=A.item
    '<table class="two-t"><tr class="h"><td>الصنف · العبوة</td><td class="vh">'+modeName(A.m)+'</td><td class="vh">'+modeName(B.m)+'</td><td class="vh">سعرك</td></tr>'+(rows||'<tr><td colspan="4">مفيش أصناف</td></tr>')+'</table>'+
    '<div class="hint">ريال/كرتونة. أقل سعر = اللي يخلّي ربح شحنة مالية من الصنف ده صفر على سعر الخام ده (بعد العمولة ومصروفات السعودية والنولون وتكاليف مصر).</div></div>'+
   '<div class="two-p" id="twoBuy"><div class="two-h"><b>② سعر التعادل لشراء الخام</b><span>أعلى سعر لشراء الخام ج/كجم واصل المحطة — على أسعار البيع وخطة الباليتات</span></div>'+
-   '<div class="two-ks">'+big(A,true)+big(B,false)+'</div>'+(A.C&&A.C.sm&&A.C.sm.over?'<div class="hint two-sm bad2">⚠ في التكاليف: الفرزة + السوبرماركت 100% أو أكتر — السوبرماركت مش محسوب لحد ما تصلّحها.</div>':'')+(A.C&&A.C.smCredit?'<div class="hint two-sm">شامل محلي سوبرماركت'+(A.C.sm.m.sizes?' مقاسات '+esc(A.C.sm.m.sizes):'')+' '+nf(A.C.sm.share*100,1)+'% من الفاكهة بعد الهالك بصافي '+N(A.C.sm.perKg)+' ج/كجم بعد الصندوق (من التكاليف).</div>':'')+alone+'</div>'+
+   '<div class="two-ks">'+big(A,true)+big(B,false)+'</div>'+contLine(tw)+(A.C&&A.C.sm&&A.C.sm.over?'<div class="hint two-sm bad2">⚠ في التكاليف: الفرزة + السوبرماركت 100% أو أكتر — السوبرماركت مش محسوب لحد ما تصلّحها.</div>':'')+(A.C&&A.C.smCredit?'<div class="hint two-sm">شامل محلي سوبرماركت'+(A.C.sm.m.sizes?' مقاسات '+esc(A.C.sm.m.sizes):'')+' '+nf(A.C.sm.share*100,1)+'% من الفاكهة بعد الهالك بصافي '+N(A.C.sm.perKg)+' ج/كجم بعد الصندوق (من التكاليف).</div>':'')+alone+'</div>'+
   '<div class="two-sc">'+scenHTML(tw,{compact:o.compact,id:o.compact?'scenCosts':'scen'})+'</div>'+
   (o.compact?'<a class="lnk two-edit" href="index.html">الأسعار والخطة من «القرار» ←</a>':'')+'</div>'}
 /* ③ مربع التكاليف وأسعار البيع والسيناريوهات (كل ريال فوق وتحت لحد 7): صنف/عبوة + الحاوية/البراد بأزرار */
@@ -41,7 +44,7 @@ function scenPanel(s,o){if(!s||!s.ok)return '<div class="hint">اكتب العب
   (s.smCredit?'<tr><td>الفرزة المباعة</td><td class="vh num">−'+nf(s.cullCredit,0)+'</td></tr><tr><td>محلي سوبرماركت المباع <small>'+nf(s.sm.share*100,1)+'% بعد الهالك · صافي بعد الصندوق</small></td><td class="vh num">−'+nf(s.smCredit,0)+'</td></tr>':'<tr><td>الفرزة المباعة</td><td class="vh num">−'+nf(s.credit,0)+'</td></tr>')+
   '<tr><td>العبوات + المستلزمات + الغسيل</td><td class="vh num">'+nf(s.pkg+s.sup+s.wash,0)+'</td></tr>'+
   '<tr class="s"><td>تكاليف مصر</td><td class="vh num">'+nf(s.egy,0)+'</td></tr>'+
-  '<tr><td>مصروفات السعودية + النولون <small>'+nf(s.expSar,0)+' + '+nf(s.frSar,0)+' ريال ÷ '+nf(s.T,2)+' طن</small></td><td class="vh num">'+nf(s.share,0)+'</td></tr>'+
+  '<tr><td>مصروفات السعودية + النولون <small>'+(s.m==='حاوية'?'حاوية':'براد')+' واحدة: '+nf(s.expSar,0)+' + '+nf(s.frSar,0)+' ريال ÷ '+nf(s.T,2)+' طن</small></td><td class="vh num">'+nf(s.share,0)+'</td></tr>'+
   '<tr class="s"><td>إجمالي التكلفة</td><td class="vh num">'+nf(s.total,0)+'</td></tr>'+
   '<tr><td>سعر البيع الحالي <small>'+nf(s.p)+' ريال/كرتونة · عمولة '+nf(s.comm*100,1)+'%</small></td><td class="vh num">'+nf(s.rev,0)+'</td></tr>'+
   '<tr class="s"><td>الربح/الخسارة على سعر النهارده</td><td class="vh num '+(s.rev-s.total>=0?'ok2':'bad2')+'">'+sg(s.rev-s.total)+'</td></tr></table>';

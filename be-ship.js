@@ -46,7 +46,7 @@ function migrate(oldDec,safi,safiFresh,costs,SA){const its=oldDec&&Array.isArray
  lines.forEach((l,i)=>{const v=SA.lineVar(l),m=its.find(it=>same(it.v,v)&&String(it.pk||'')===String(l[1]||'')&&(isSet(it.max)||isSet(it.share)));if(m)ext.list[i]={k:SA.lineKey(l),max:isSet(m.max)?+m.max:'',share:isSet(m.share)?+m.share:''}});
  return {seed,ext,had:its.length}}
 /* الشحنة على وسيلة نقل: كل سطر = تعادله وربحه بخامه هو، والمصروفات المشتركة على الوزن (زي الصوافي بالظبط) */
-function analyze(BE,C,items,n){const p=BE.planBE(C,items,n),share=p.T>0?C.sharedE/p.T:null;let own=0,okAll=p.T>0;
+function analyze(BE,C,items,n){const p=BE.planBE(C,items,n),share=p.T>0?p.shared/p.T:null;let own=0,okAll=p.T>0;
  const rows=p.rows.map((x,i)=>{const it=items[i],raw=num(it.raw!=null&&it.raw!==''?it.raw:C.costs.raw);const ok=x.ok&&p.T>0&&x.pal>0;
   const Rrow=x.ok&&share!=null?(x.a-share)/C.k:null,pt=ok?x.a-share-C.k*raw:null,ps=ok?pt*x.t:0;if(ok)own+=ps;
   const cost=x.ok?raw*C.k-C.credit+x.pkg+C.sup+(x.wash||0):null;

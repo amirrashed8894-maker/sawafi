@@ -1,6 +1,6 @@
 /* v2.6.0 — الشحنة واحدة للصوافي والقرار: نفس السطور والباليتات والكراتين، وتكلفة كل سطر = تكلفة الصوافي التلقائية = التكاليف، والربح بخام كل صنف = ربح الصوافي. */
 const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('path');
-const CC=require('../costs-calc.js'),E=require('../costs-core.js'),SA=require('../safi-autocost.js'),BE=require('../be-core.js'),SH=require('../be-ship.js');
+const SHIPC=require('../ship-cont.js'),CC=require('../costs-calc.js'),E=require('../costs-core.js'),SA=require('../safi-autocost.js'),BE=require('../be-core.js'),SH=require('../be-ship.js');
 const SAW=(()=>{const c={module:{exports:{}},console,JSON,Math};vm.createContext(c);vm.runInContext(fs.readFileSync(path.join(__dirname,'../core.js'),'utf8')+fs.readFileSync(path.join(__dirname,'../pinned.js'),'utf8')+';module.exports={calc,DEF,PINNED};',c);return c.module.exports})();
 const J=o=>JSON.parse(JSON.stringify(o));let n=0;const t=(m,f)=>{f();n++;console.log('✓',m)};
 let seed=4242;const R=()=>(seed=(seed*16807)%2147483647)/2147483647;const pick=a=>a[Math.floor(R()*a.length)];
@@ -18,7 +18,8 @@ function rndSafi(costs){const S=J(SAW.PINNED);EXTRA.forEach(p=>{if(!S.pk.some(x=
  if(R()<0.2)S.lines.push(['','',0,'',0,0]);return S}
 function setup(){const costs=rndCosts(),safi=rndSafi(costs);SH.autoCost(safi.lines,costs,CC,SA);BE.usePkg(SH.pkgHook(costs,CC,SA));const dec=BE.decFrom(null);dec.base=safi.mode;dec.cap={'حاوية':21,'براد':23};return {costs,safi,dec}}
 /* ربح الصوافي بتكلفة كل سطر (attachCosts في app.js بالحرف) */
-function safiProfit(S,cost){const r=SAW.calc(S),E_=S.egp;const src=S.lines.filter(l=>+l[2]);let pl=0;r.lines.forEach((x,i)=>{pl+=(x.nt*E_-cost(src[i]))*x.t});return {pl,r}}
+/* v2.8.0: الصوافي بتحسب على نسخة النولون والمصروفات فيها × عدد الحاويات (ceil(الباليتات ÷ السعة)) */
+function safiProfit(S,cost,cap){const nC=SHIPC.contN(SHIPC.palOf(S),cap||SHIPC.capFrom(null,S.mode));const r=SAW.calc(SHIPC.scale(S,nC)),E_=S.egp;const src=S.lines.filter(l=>+l[2]);let pl=0;r.lines.forEach((x,i)=>{pl+=(x.nt*E_-cost(src[i]))*x.t});return {pl,r}}
 
 t('القرار = سطور الصوافي بالظبط (500 شحنة عشوائية): الصنف، المقاس، العبوة، الباليتات، كراتين/باليت، الكراتين، سعر البيع، وإجمالي الباليتات',()=>{
  for(let k=0;k<500;k++){const {costs,safi}=setup();const its=SH.items(safi,null,costs,SA);const L=safi.lines.filter(SH.isRow);assert.strictEqual(its.length,L.length);
@@ -32,7 +33,7 @@ t('تكلفة الطن لكل سطر في القرار = «تكلفة الطن �
  assert.ok(cnt>800,'cnt '+cnt);console.log('   ',cnt,'سطر، أكبر فرق',worst.toExponential(2),'ج/طن')});
 t('ربح الشحنة في القرار بخام كل صنف = ربح/خسارة الشحنة في الصوافي (calc الأصلية + التكلفة التلقائية) — 500 شحنة',()=>{let cnt=0;
  for(let k=0;k<500;k++){const {costs,safi,dec}=setup();const its=SH.items(safi,null,costs,SA);if(its.some(it=>SA.costFor(costs,it.v,it.pk,CC).ton==null))continue;
-  const C=BE.ctx(safi,costs,dec,safi.mode),A=SH.analyze(BE,C,its,its.map(x=>x.pal));const {pl,r}=safiProfit(safi,l=>SA.costFor(costs,SA.lineVar(l),l[1],CC).exact);if(!(r.t>0))continue;
+  const C=BE.ctx(safi,costs,dec,safi.mode),A=SH.analyze(BE,C,its,its.map(x=>x.pal));const {pl,r}=safiProfit(safi,l=>SA.costFor(costs,SA.lineVar(l),l[1],CC).exact,dec.cap[safi.mode]);if(!(r.t>0))continue;
   close(A.T,r.t,1e-12,'طن');close(A.own,pl,1e-7,'ربح');const p2=BE.planBE(C,its,its.map(x=>x.pal));close(p2.profitOwn,pl,1e-7,'profitOwn');cnt++}
  assert.ok(cnt>300,'cnt '+cnt)});
 t('تعادل كل سطر: الخام = تعادله → ربح السطر صفر؛ ومتوسط تعادل السطور المرجّح بالطن = سعر التعادل للخطة (②)',()=>{
@@ -68,14 +69,17 @@ t('حساب يدوي — شحنة أمير: يوسفي 17 × 200 صندوق 5ك 
  const C=BE.ctx(safi,costs,dec,'حاوية'),A=SH.analyze(BE,C,its,[17,11]);
  /* يدوي */
  const k=1000/((1-0.005)*(1-0.25)),credit=5*k*(1-0.005)*0.25,sup=costs.sup.reduce((a,x)=>a+x[1],0);
- const T=17*200*5/1000+11*154*7.15/1000,share=(8500+2800*3.7567)/3.7567*53.5/T;
+ const T=17*200*5/1000+11*154*7.15/1000,share=2*(8500+2800*3.7567)/3.7567*53.5/T;   // v2.8.0: 28 باليت ÷ 21 = 2 حاوية → النولون والمصروفات × 2
  const pk5=Math.ceil(Math.ceil(24000/5)*1.005)*costs.pk.find(p=>p[0]==='صندوق بلاستيك 5 ك ملوّن')[1]/24,pk7=Math.ceil(Math.ceil(24000/7)*1.005)*23/24;
  const c1=9*k-credit+pk5+sup+1800,c2=11.75*k-credit+pk7+sup+2500;
  close(A.rows[0].cost,c1,1e-12,'تكلفة يوسفي');close(A.rows[1].cost,c2,1e-12,'تكلفة أبوسرة');assert.strictEqual(+safi.lines[0][6],Math.round(c1*100)/100);assert.strictEqual(+safi.lines[1][6],Math.round(c2*100)/100);
  const rv1=15*0.94*200/3.7567*53.5,rv2=18*0.94*(1000/7.15)/3.7567*53.5;
  close(A.rows[0].Rrow,(rv1-(pk5+sup+1800-credit)-share)/k,1e-12,'R يوسفي');close(A.rows[1].Rrow,(rv2-(pk7+sup+2500-credit)-share)/k,1e-12,'R أبوسرة');
  const own=(rv1-share-c1)*17+(rv2-share-c2)*11*154*7.15/1000;close(A.own,own,1e-9,'الشحنة');
- const Q=SH.quick(BE,safi,costs,dec,its,{d:2,conf:0.8});assert.strictEqual(Q.pal,28);assert.strictEqual(Q.boxes,2);
+ const Q=SH.quick(BE,safi,costs,dec,its,{d:2,conf:0.8});assert.strictEqual(Q.pal,28);assert.strictEqual(Q.boxes,2);assert.strictEqual(A.plan.nC,2);
+ const {pl}=safiProfit(safi,l=>SA.costFor(costs,SA.lineVar(l),l[1],CC).exact,21);close(A.own,pl,1e-9,'الصوافي = القرار');
+ const dec1=BE.decFrom(null);dec1.cap={'حاوية':100,'براد':100};const A1=SH.analyze(BE,BE.ctx(safi,costs,dec1,'حاوية'),its,[17,11]);   // قبل v2.8.0 = مرة واحدة
+ console.log('    قبل (مرة واحدة):',A1.rows.map(r=>r.v+' أعلى خام '+r.Rrow.toFixed(2)+' ربح/طن '+r.profitTon.toFixed(2)).join(' · '),'| الشحنة',A1.own.toFixed(2),'هامش',A1.delta.toFixed(3));
  console.log('    T',T.toFixed(3),'طن · مصروفات/طن',share.toFixed(2),'· k',k.toFixed(2),'· فرزة',credit.toFixed(2));
  A.rows.forEach(r=>console.log('   ',r.v,r.pk,'| تكلفة',r.cost.toFixed(2),'ج/طن | أعلى خام',r.Rrow.toFixed(2),'| خامه',r.raw,'| ربح/طن',r.profitTon.toFixed(2),'| الشحنة',r.profit.toFixed(2)));
  console.log('    الشحنة: ',A.own.toFixed(2),'ج · هامش',A.delta.toFixed(3),'ج/كجم · R خطة',A.R.toFixed(2));

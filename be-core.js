@@ -6,6 +6,7 @@
    سعر التعادل للخام R* = أعلى سعر خام ج/كجم يخلّي الربح = صفر. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.BE=api})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
+const SC=typeof SHIPC!=='undefined'?SHIPC:(typeof require==='function'?(()=>{try{return require('./ship-cont.js')}catch(e){return null}})():null);
 const MODES=['حاوية','براد'];            // الحاوية الأساسي، البراد فرعي
 const KEYS={safi:'safiNetback.v2',safiM:'safiNetback.v2.mirror',costs:'citrusCosts.v2',costsOld:'citrusCosts',dec:'decision.v1',decM:'decision.v1.mirror'};
 /* نسخة من DEF برنامج تكاليف الموالح v2.0.4 (القيم اللي أكدها صاحب البرنامج) — الاختبار بيتأكد إنها زي costs-core.js بالظبط */
@@ -54,11 +55,12 @@ function ctx(safi,costs,dec,mode,over){over=over||{};const u=num(over.sar!=null?
  const c=(safi.clients||[]).find(x=>x[0]===safi.client);const comm=over.comm!=null?over.comm:(c?num(c[1]):0);
  const br=mode==='براد',fr=num(over.frMul!=null?over.frMul:1);
  const expSar=(safi.exp||[]).reduce((a,x)=>a+num(br?x[1]:x[2]),0);
+ const sp=SC?SC.split(safi.exp,mode):{per:expSar,once:0};   // v2.8.0: لكل حاوية / مرة للشحنة
  const frSar=(br?num(safi.fB):num(safi.fC)*u)*fr;
  const loss=num(over.loss!=null?over.loss:costs.loss),cull=num(over.cull!=null?over.cull:costs.cull);
  const sm=smOf(costs,loss,cull),smS=sm.on?sm.share:0;const k=1000/((1-loss)*(1-cull-smS));const cullCredit=num(costs.cullP)*k*(1-loss)*cull;const smCredit=sm.on?sm.netRev:0,smGain=sm.on?sm.gain:0;const credit=cullCredit+smCredit;
  const sup=(costs.sup||[]).reduce((a,x)=>a+num(x[1]),0);
- return {safi,costs,dec,mode,u,E,comm,expSar,frSar,sharedSar:expSar+frSar,sharedE:u?(expSar+frSar)/u*E:0,loss,cull,k,credit,cullCredit,smCredit,smGain,sm,sup,pw:num(costs.pw),cap:num(dec.cap[mode]),
+ return {safi,costs,dec,mode,u,E,comm,expSar,frSar,sharedSar:expSar+frSar,sharedE:u?(expSar+frSar)/u*E:0,expPer:sp.per,expOnce:sp.once,perE:u?(sp.per+frSar)/u*E:0,onceE:u?sp.once/u*E:0,loss,cull,k,credit,cullCredit,smCredit,smGain,sm,sup,pw:num(costs.pw),cap:num(dec.cap[mode]),
   pAdd:num(over.pAdd||0),noClient:!c,frMissing:frSar===0}}
 function item(C,it){const w=pkW(C.safi,C.costs,it.pk),cpp=num(it.cpp),p=num(it.p)+C.pAdd,pr=pkRow(C.costs,it.pk),pk=pr?num(pr[1]):null,wash=washOf(C.costs,it.v),hk=PKG?PKG(it.v,it.pk):null;
  const ok=w>0&&cpp>0&&C.u>0;const tPal=ok?cpp*w/1000:0;
@@ -67,10 +69,14 @@ function item(C,it){const w=pkW(C.safi,C.costs,it.pk),cpp=num(it.cpp),p=num(it.p
  const a=rev-pkg-C.sup-(wash||0)+C.credit;                // المتاح للخام والمصروفات المشتركة ج/طن
  return {w,cpp,p,tPal,rev,pkg,wash,sup:C.sup,credit:C.credit,a,ok,missPk:pk==null&&hk==null,missWash:wash==null}}
 const rawOfIt=(it,costs)=>isSet(it&&it.raw)?+it.raw:num(costs&&costs.raw);  // v2.6.0: خام الصنف نفسه لو متحدد (وإلا خام النهارده)
-function planBE(C,items,n){let T=0,A=0,Q=0,sales=0;const rows=items.map((it,i)=>{const x=item(C,it),pal=num(n[i]),t=pal*x.tPal;T+=t;A+=t*x.a;Q+=pal*x.cpp;sales+=pal*x.cpp*x.p;return Object.assign(x,{pal,t})});
- const R=T>0?(A-C.sharedE)/(C.k*T):null;
+/* v2.8.0: عدد الحاويات = ceil(باليتات الخطة ÷ السعة)، والنولون + المصروفات (لكل حاوية) × العدد + الثابت مرة واحدة */
+function contOf(C,pal){return SC?SC.contN(pal,C.cap):1}
+function sharedFor(C,nC){return nC===1||C.perE==null?C.sharedE*nC:C.onceE+nC*C.perE}   // حاوية واحدة = نفس رقم v2.7.0 بالظبط
+function planBE(C,items,n){let T=0,A=0,Q=0,sales=0,P=0;const rows=items.map((it,i)=>{const x=item(C,it),pal=num(n[i]),t=pal*x.tPal;T+=t;A+=t*x.a;Q+=pal*x.cpp;sales+=pal*x.cpp*x.p;P+=pal;return Object.assign(x,{pal,t})});
+ const nC=contOf(C,P),sh=sharedFor(C,nC);
+ const R=T>0?(A-sh)/(C.k*T):null;
  let KR=0;rows.forEach((x,i)=>{KR+=x.t*rawOfIt(items[i],C.costs)});
- return {R,Rton:R==null?null:R*1000,T,Q,sales,rows,sharedTon:T>0?C.sharedE/T:null,profitAt:raw=>T>0?(A-C.sharedE)-raw*C.k*T:null,profitOwn:T>0?(A-C.sharedE)-C.k*KR:null}}
+ return {R,Rton:R==null?null:R*1000,T,Q,sales,rows,pal:P,nC,shared:sh,sharedSar:nC===1||C.expOnce==null?C.sharedSar*nC:C.expOnce+nC*(C.expPer+C.frSar),sharedTon:T>0?sh/T:null,profitAt:raw=>T>0?(A-sh)-raw*C.k*T:null,profitOwn:T>0?(A-sh)-C.k*KR:null}}
 function itemBE(C,it){return planBE(C,[it],[C.cap])}
 function priceForRaw(C,it,raw){const x=item(C,Object.assign({},it,{p:0}));if(!x.ok)return null;const T=C.cap*x.tPal;if(!(T>0))return null;
  return (raw*C.k+C.sharedE/T-x.a)/((1-C.comm)*(1000/x.w)/C.u*C.E)}
@@ -130,4 +136,4 @@ function sensitivity(safi,costs,dec,mode,items,n){const C0=ctx(safi,costs,dec,mo
 function parseCostsImport(txt){const s=String(txt||'').trim();const m=s.match(/COSTS1:([A-Za-z0-9+/=_-]+)/);let o=null;
  try{if(m){const b=m[1].replace(/-/g,'+').replace(/_/g,'/');const bin=typeof atob==='function'?atob(b):Buffer.from(b,'base64').toString('binary');o=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,ch=>ch.charCodeAt(0))))}else o=JSON.parse(s)}catch(e){return null}
  if(o&&o.app&&o.app!=='citrus-costs')return null;if(o&&o.S)o=o.S;if(!o||typeof o!=='object'||!Array.isArray(o.pk)||!Array.isArray(o.sup))return null;return costsFrom(o)}
-return {VER:'2.6.0',usePkg,rawOfIt,SM_DEF,smState,smOf,MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});
+return {VER:'2.8.0',usePkg,contOf,sharedFor,rawOfIt,SM_DEF,smState,smOf,MODES,KEYS,COSTS_DEF,DEC_DEF,ASSUME,unwrap,costsFrom,decFrom,ctx,item,planBE,itemBE,priceForRaw,planN,twoWay,scenario,simplex,optimize,sensitivity,washOf,pkW,parseCostsImport,norm}});

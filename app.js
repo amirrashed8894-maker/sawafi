@@ -1,5 +1,5 @@
 /* الصوافي — الواجهة والتقرير (v1.2.0). الحساب كله من calc() الأصلية في core.js */
-const VER='2.7.0';
+const VER='2.8.0';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
 const SK='safiNetback.v2';
 /* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
@@ -77,7 +77,10 @@ function attachCosts(r){const src=S.lines.filter(l=>+l[2]),u=S.sar,E=S.egp,comm=
   const t=L.reduce((a,x)=>a+x.t,0),avg=t?L.reduce((a,x)=>a+x.cost*x.t,0)/t:null;tp.costAvg=avg;
   const g=r.t?-r.shared*t/r.t:0;tp.be=tp.q?(avg/E*t*u-g)/(1-comm)/tp.q:null;tp.plTon=tp.nt!=null?tp.nt*E-avg:null});
  return r}
-function result(){return attachCosts(calc(S))}
+/* v2.8.0: النولون والمصروفات المكتوبين = لكل حاوية/براد، وبيتضربوا في عدد الحاويات (ceil(الباليتات ÷ السعة من القرار)) — بند ثابت للشحنة مرة واحدة */
+function contInfo(){const m=S.mode==='براد'?'براد':'حاوية';return SHIPC.info(S,{cap:{[m]:capOf()}})}
+function shipCalc(){return calc(SHIPC.scale(S,contInfo().n))}
+function result(){return attachCosts(shipCalc())}
 const pct=(v,b)=>b?f(v/b*100,1)+'%':'—';
 let ERR={},DR={};            // أخطاء المدخلات والنص المكتوب غلط — مفتاح منفصل (S فيها آخر قيمة صحيحة)
 const UK='safiNetback.v2.pending';try{const u=JSON.parse(lsGet(UK)||'null');if(u&&u.ERR&&u.DR){ERR=u.ERR;DR=u.DR}}catch(e){}
@@ -137,7 +140,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* ---------- المدخلات ---------- */
 const FIELDS=[['sec','أسعار الصرف'],['sar','سعر الدولار بالريال','ريال / $'],['egp','سعر الدولار بالجنيه','ج / $'],
- ['sec','النولون من مصر'],['fC','نولون الحاوية','$','حاوية'],['fB','نولون البراد','ريال','براد']];
+ ['sec','النولون من مصر — لكل حاوية/براد (بيتضرب في العدد تلقائي)'],['fC','نولون الحاوية','$','حاوية'],['fB','نولون البراد','ريال','براد']];
 function shown(k){const key='k:'+k;if(key in DR)return DR[key];return S[k]}
 function renderInputs(){let h='<div class="f full"><label>تاريخ الحساب</label><div class="in'+(ERR.date?' bad':'')+'"><input data-date="1" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="يوم/شهر/سنة" aria-label="تاريخ الحساب يوم/شهر/سنة" value="'+esc(dateShown())+'"></div>'+(ERR.date?'<div class="emsg" data-for="date">'+esc(ERR.date)+'</div>':'')+'<div class="hint">ميلادي — يوم/شهر/سنة</div></div>';
  FIELDS.forEach(x=>{if(x[0]=='sec'){h+='<div class="sec">'+x[1]+'</div>';return}const key='k:'+x[0];
@@ -184,8 +187,8 @@ function renderTables(){
   '<div class="ltot" id="ltTot"></div>';fixSelects($('#lt'));
  const on=j=>((S.mode=='براد')==(j==1))?' class="on"':'';
  const md=j=>((S.mode=='براد')==(j==1))?' on':' off';
- $('#et').innerHTML=S.exp.map((e,i)=>'<div class="ln"><div class="r1">'+cell('exp:'+i+':0',e[0],'txt','البند')+'<button class="x" data-del="exp:'+i+'" aria-label="حذف">×</button></div><div class="r2e"><div class="mi'+md(1)+'"><span>براد</span>'+cell('exp:'+i+':1',e[1],'v','براد')+'</div><div class="mi'+md(2)+'"><span>حاوية</span>'+cell('exp:'+i+':2',e[2],'v','حاوية')+'</div></div>'+errMsgs('exp:'+i)+'</div>').join('')+
-  '<div class="r2e tt"><div class="mi'+md(1)+'"><span>إجمالي البراد</span><b id="eB" class="num"></b></div><div class="mi'+md(2)+'"><span>إجمالي الحاوية</span><b id="eC" class="num"></b></div></div>';
+ $('#et').innerHTML=S.exp.map((e,i)=>'<div class="ln"><div class="r1">'+cell('exp:'+i+':0',e[0],'txt','البند')+'<button class="xon" type="button" data-once="'+i+'" aria-label="لكل حاوية أو مرة للشحنة"></button><button class="x" data-del="exp:'+i+'" aria-label="حذف">×</button></div><div class="r2e"><div class="mi'+md(1)+'"><span>براد</span>'+cell('exp:'+i+':1',e[1],'v','براد')+'</div><div class="mi'+md(2)+'"><span>حاوية</span>'+cell('exp:'+i+':2',e[2],'v','حاوية')+'</div></div>'+errMsgs('exp:'+i)+'</div>').join('')+
+  '<div class="r2e tt"><div class="mi'+md(1)+'"><span>إجمالي البراد</span><b id="eB" class="num"></b></div><div class="mi'+md(2)+'"><span>إجمالي الحاوية</span><b id="eC" class="num"></b></div></div><div class="hint expN" id="expN"></div>';
  $('#ct').innerHTML='<div class="r3 th"><span>العميل</span><span>العمولة %</span><span></span></div>'+S.clients.map((c,i)=>'<div class="r3">'+cell('clients:'+i+':0',c[0])+cell('clients:'+i+':1',+(c[1]*100).toFixed(4),'v','العمولة %')+'<button class="x" data-del="clients:'+i+'" aria-label="حذف">×</button></div>'+errMsgs('clients:'+i)).join('');
  let pkAdd='';if(PKNEW)pkAdd='<div class="nwin pkn pkadd"><input data-nw="tpkn" placeholder="اسم العبوة"><input class="v" inputmode="decimal" data-nw="tpkw" placeholder="الوزن كجم"><input class="v" inputmode="decimal" data-nw="tpkp" placeholder="صندوق/باليت" enterkeyhint="done"><button class="x ok" id="bTblPkOk" aria-label="تمام">✓</button><button class="x" id="bTblPkX" aria-label="إلغاء">↩</button></div>';
  $('#pt').innerHTML='<div class="r4 th"><span>نوع العبوة</span><span>الوزن كجم</span><span>صندوق/باليت</span><span></span></div>'+pkAdd+S.pk.map((p,i)=>'<div class="r4">'+cell('pk:'+i+':0',p[0])+cell('pk:'+i+':1',p[1],'v','الوزن كجم')+cell('pk:'+i+':2',p[2]||'','v','صناديق في الباليت')+'<button class="x" data-del="pk:'+i+'" aria-label="حذف">×</button></div>'+errMsgs('pk:'+i)).join('')}
@@ -199,7 +202,7 @@ function errName(k){if(k==='date')return 'تاريخ الحساب';const a=k.spl
 function errList(all){return Object.keys(ERR).filter(k=>all||(k!=='date'&&!/^lines:\d+:6$/.test(k))).map(k=>errName(k)+': '+ERR[k])}
 
 /* ---------- العرض المباشر ---------- */
-function chainRows(r){return [['إجمالي المبيعات',r.sales],['العمولة ('+f(r.comm*100,1)+'%)',r.commV],['مصروفات '+S.mode+' في السعودية',r.expV],['نولون الشحن من مصر',r.frV],['الصافي بعد المصاريف',r.net,'t']]}
+function chainRows(r){const ci=contInfo(),w=ci.unitWord;return [['إجمالي المبيعات',r.sales],['العمولة ('+f(r.comm*100,1)+'%)',r.commV],['مصروفات '+S.mode+' في السعودية ('+f(ci.expPer,0)+' ريال × '+ci.n+' '+w+(ci.expOnce?' + '+f(ci.expOnce,0)+' مرة واحدة':'')+')',r.expV],['نولون الشحن من مصر ('+SHIPC.lbl('',ci.frUnit,ci.frCur,ci.n,w).trim()+')',r.frV],['الصافي بعد المصاريف',r.net,'t']]}
 function renderLive(){if(applyAuto())save();const E=errList(),bad=E.length>0;document.body.classList.toggle('invalid',bad);
  $('#net').innerHTML=esc(S.client)+' · '+esc(S.mode);
  document.querySelectorAll('[data-mh]').forEach(h=>{const on=h.dataset.mh==S.mode;h.classList.toggle('on',on);h.textContent=on?'محسوب — الشحن '+h.dataset.mh:'مش محسوب — الشحن مش '+h.dataset.mh});
@@ -218,7 +221,7 @@ function renderLive(){if(applyAuto())save();const E=errList(),bad=E.length>0;doc
  const sales=r.sales,seg=[[r.net,''],[-r.commV,'ded2'],[-r.expV,'ded'],[-r.frV,'ded3']];
  $('#mojmal').innerHTML='<h2>المجمل <small>من المبيعات للصافي</small></h2>'+(sales>0?'<div class="bar">'+seg.map(s=>s[0]>0?'<i class="'+s[1]+'" style="width:'+Math.min(100,s[0]/sales*100)+'%"></i>':'').join('')+'</div>':'')+
   '<div class="bk"><table><tr class="h"><td>البند</td><td class="vh">ريال</td><td class="vh">ج / طن</td><td class="vh">%</td></tr>'+
-  chainRows(r).map((x,i)=>'<tr'+(x[2]?' class="t"':'')+'><td>'+esc(['إجمالي المبيعات','العمولة '+f(r.comm*100,1)+'%','مصروفات السعودية','النولون من مصر','الصافي'][i])+'</td><td class="v">'+f(x[1])+'</td><td class="v">'+(r.t?f(x[1]/r.t/u*E2):'—')+'</td><td class="v">'+pct(x[1],sales)+'</td></tr>').join('')+
+  chainRows(r).map((x,i)=>'<tr'+(x[2]?' class="t"':'')+'><td>'+(i===2||i===3?esc(['','','مصروفات السعودية','النولون من مصر'][i])+'<small class="xn">× '+contInfo().n+' '+contInfo().unitWord+'</small>':esc(['إجمالي المبيعات','العمولة '+f(r.comm*100,1)+'%','','','الصافي'][i]))+'</td><td class="v">'+f(x[1])+'</td><td class="v">'+(r.t?f(x[1]/r.t/u*E2):'—')+'</td><td class="v">'+pct(x[1],sales)+'</td></tr>').join('')+
   '</table><div class="hint">الصافي = المبيعات − العمولة − مصروفات السعودية − النولون · الجنيه = الدولار × '+N(f(E2))+' · الدولار = '+N(f(u,4))+' ريال</div></div>';
  const V=(l,v)=>'<div><span>'+l+'</span><b class="num">'+v+'</b></div>';
  const meta=saleMeta();
@@ -227,6 +230,8 @@ function renderLive(){if(applyAuto())save();const E=errList(),bad=E.length>0;doc
  d+='<div class="hint" style="margin-top:8px">صافي كل سطر = مبيعاته بعد العمولة − نصيبه من المصروفات والنولون حسب الوزن. الربح/الخسارة والتعادل من تكلفة كل صنف (والمتجمع متوسط مرجّح بالطن).</div>';
  $('#detail').innerHTML=d;
  const tB=S.exp.reduce((a,x)=>a+(+x[1]||0),0),tC=S.exp.reduce((a,x)=>a+(+x[2]||0),0);const eb=$('#eB'),ec=$('#eC');if(eb)eb.textContent=f(tB);if(ec)ec.textContent=f(tC);
+ {const ci=contInfo(),ex=$('#expN');if(ex)ex.innerHTML='<b>'+esc(SHIPC.text(ci))+'</b><br>الأرقام فوق لـ'+ci.unitWord+' واحدة — الشحنة <span class="num">'+f(ci.pal,0)+'</span> باليت = <span class="num">'+ci.n+'</span> '+ci.unitWord+' (السعة <span class="num">'+f(ci.cap,0)+'</span> من القرار)، فالنولون وكل بند «× '+ci.n+'» بيتضربوا تلقائي. البند الثابت للشحنة كلها اضغط عليه «مرة للشحنة».';
+  document.querySelectorAll('[data-once]').forEach(b=>{const e=S.exp[+b.dataset.once];if(!e)return;const o=SHIPC.isOnce(e);b.textContent=o?'مرة للشحنة':'× '+ci.n+' '+ci.unitWord;b.classList.toggle('on',o)})}
  document.querySelectorAll('[data-lv]').forEach(e=>{const l=S.lines[+e.dataset.lv];if(!l)return;const q=+l[2]||0,pal=linePal(l),cpp=lineCpp(l);
   e.innerHTML=q?N(f(pal,0))+' باليت × '+N(f(cpp,0))+' = '+N(f(q,0))+' كرتونة · المبيعات '+N(f(q*+l[3]))+' ريال':'الكراتين صفر — السطر مش داخل في الحساب'});
  document.querySelectorAll('[data-cartons]').forEach(e=>{const l=S.lines[+e.dataset.cartons];if(l)e.textContent=f(+l[2]||0,0)});
@@ -235,7 +240,7 @@ function renderLive(){if(applyAuto())save();const E=errList(),bad=E.length>0;doc
   if(!(+l[2])){e.innerHTML='<span class="clab">ربح / خسارة</span><b class="need">—</b>';return}
   if(!x||x.plTon==null){e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="need">'+needCost()+'</b>';return}
   e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="'+(x.plTon<0?'neg':'')+'">'+plH(x.plTon)+' ج</b>'});
- const tot=palTotals(),lt=$('#ltTot');if(lt){const cp=capOf(),nb=cp>0?Math.ceil(tot.pal/cp-1e-9):0;lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>'+(cp>0&&tot.pal?'<small class="ltBox'+(tot.pal>cp?' warn':'')+'">= <span class="num">'+nb+'</span> '+S.mode+' (السعة <span class="num">'+f(cp,0)+'</span> من القرار)'+(tot.pal>cp?' — النولون والمصروفات المكتوبين هنا محسوبين مرة واحدة':'')+'</small>':'')}paintAuto()}
+ const tot=palTotals(),lt=$('#ltTot');if(lt){const cp=capOf(),nb=cp>0?Math.ceil(tot.pal/cp-1e-9):0;lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>'+(cp>0&&tot.pal?'<small class="ltBox">= <span class="num">'+nb+'</span> '+S.mode+' (السعة <span class="num">'+f(cp,0)+'</span> من القرار) — '+esc(SHIPC.text(contInfo()))+'</small>':'')}paintAuto()}
 /* v2.6.0: سعة الحاوية/البراد من إعدادات القرار (نفس الرقم في الصفحتين) */
 function capOf(){try{const p=JSON.parse(lsGet('decision.v1')||'null');const c=p&&p.S&&p.S.cap;const v=c&&+c[S.mode];if(v>0)return v}catch(e){}return S.mode==='براد'?23:21}
 function renderAll(){if(applyAuto())save();renderChips();renderInputs();renderTables();renderLive();showSaved();renderTools();$('#ver').textContent='· v'+VER}
@@ -310,6 +315,7 @@ function renderTools(){const u=$('#bUndo'),b=readState(SK_B);if(u){u.hidden=!b;i
 function clearErrs(a){Object.keys(ERR).filter(k=>k.startsWith(a+':')).forEach(k=>{delete ERR[k];delete DR[k]})}
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
  if(t.dataset.acreset!=null){const i=+t.dataset.acreset,l=S.lines[i];if(!l||!AUTO_ON)return;SafiAuto.setAuto(l);const k='lines:'+i+':6';delete ERR[k];delete DR[k];applyAuto();save();renderTables();renderLive();return}
+ if(t.dataset.once!=null){const e=S.exp[+t.dataset.once];if(!e)return;e[3]=SHIPC.isOnce(e)?'per':'once';save();renderTables();renderLive();return}
  if(t.dataset.c!=null){S.client=S.clients[+t.dataset.c][0];save();renderChips();renderLive()}
  else if(t.dataset.m){S.mode=t.dataset.m;save();renderChips();renderTables();renderLive()}
  else if(t.dataset.add){const a=t.dataset.add;   // نفس قيم الإضافة في البرنامج الأصلي
@@ -342,7 +348,7 @@ document.addEventListener('change',e=>{if(e.target&&e.target.id=='fImport'&&e.ta
 let REPMODE='full';
 function repParts(){const r=result(),u=S.sar,E=S.egp,full=REPMODE=='full';
  const code=full?'RT-20261028-012':'RT-20261028-013';
- const head=t=>'<div class="ph"><div><h1>'+t+'</h1><div class="meta">تاريخ الحساب <span class="ltr">'+esc(D(S.date))+'</span> — العميل '+esc(S.client)+' (عمولة <span class="ltr">'+f(r.comm*100,1)+'%</span>) — الشحن '+esc(S.mode)+' — الدولار <span class="ltr">'+f(S.sar,4)+'</span> ريال — <span class="ltr">'+f(S.egp)+'</span> ج</div></div><span class="tag">الصوافي</span></div>';
+ const head=t=>'<div class="ph"><div><h1>'+t+'</h1><div class="meta">تاريخ الحساب <span class="ltr">'+esc(D(S.date))+'</span> — العميل '+esc(S.client)+' (عمولة <span class="ltr">'+f(r.comm*100,1)+'%</span>) — الشحن '+esc(S.mode)+' × <span class="ltr">'+contInfo().n+'</span> — الدولار <span class="ltr">'+f(S.sar,4)+'</span> ريال — <span class="ltr">'+f(S.egp)+'</span> ج</div></div><span class="tag">الصوافي</span></div>';
  const R=(n,v,cls)=>'<tr'+(cls?' class="'+cls+'"':'')+'><td>'+esc(n)+'</td><td class="n">'+f(v)+'</td><td class="n">'+f(v/u)+'</td><td class="n">'+f(v/u*E)+'</td><td class="n">'+(r.t?f(v/r.t/u*E):'—')+'</td><td class="n">'+pct(v,r.sales)+'</td></tr>';
  const warn=r.warn?'<div class="rwarn">'+esc(r.warn)+'</div>':'';
  const F=(x,d)=>'<span class="ltr">'+f(x,d)+'</span>',F$=(x,d)=>'<span class="ltr">$'+f(x,d)+'</span>';
@@ -366,8 +372,9 @@ function repParts(){const r=result(),u=S.sar,E=S.egp,full=REPMODE=='full';
   blocks.push('<h3>حسب نوع العبوة</h3><table class="rt sm"><thead><tr><th>العبوة</th><th>الكراتين</th><th>طن</th><th>المبيعات ريال</th><th>متوسط ريال</th><th>العمولة</th><th>نصيبه من المصروفات</th><th>الصافي ريال</th><th>صافي الطن $</th><th>صافي العبوة $</th><th>التعادل ريال/عبوة</th></tr></thead><tbody>'+
    r.types.map(x=>'<tr><td>'+esc(x.n)+'</td><td class="n">'+f(x.q,0)+'</td><td class="n">'+f(x.t,3)+'</td><td class="n">'+f(x.v)+'</td><td class="n">'+f(x.avg)+'</td><td class="n">'+f(x.f)+'</td><td class="n">'+f(x.g)+'</td><td class="n">'+f(x.h)+'</td><td class="n">'+f(x.nt)+'</td><td class="n">'+f(x.np)+'</td><td class="n">'+(x.be==null?needCost():f(x.be))+'</td></tr>').join('')+
    '</tbody></table><div class="note">سعر التعادل = سعر البيع للعبوة اللي يغطي تكلفة الصنف (أو المتوسط المرجّح لو النوع فيه أكتر من تكلفة) بعد العمولة والمصروفات. '+(r.types.some(x=>x.be==null)?'لو التكلفة ناقصة يظهر: '+needCost()+'':'')+'</div>');
-  blocks.push('<h3>مصروفات '+esc(S.mode)+' في السعودية (ريال)</h3><table class="rt"><thead><tr><th>البند</th><th>ريال</th></tr></thead><tbody>'+S.exp.map(e=>'<tr><td>'+esc(e[0])+'</td><td class="n">'+f(S.mode=='براد'?e[1]:e[2])+'</td></tr>').join('')+'<tr class="gt"><td>الإجمالي</td><td class="n">'+f(r.expT)+'</td></tr></tbody></table><div class="note">مصروفات مشتركة موزّعة على الأصناف حسب الوزن.</div>');
-  blocks.push('<h3>ملاحظات</h3><ul><li>العمولة نسبة من مبيعات كل سطر حسب العميل.</li><li>مصروفات السعودية والنولون موزّعة حسب الوزن (الكراتين × وزن العبوة).</li><li>نولون الحاوية بالدولار والبراد بالريال.</li><li>تكلفة الطن تتكتب لكل صنف؛ الربح/الخسارة والتعادل للمتجمع بالمتوسط المرجّح حسب وزن كل صنف.</li></ul>')}
+  {const ci=contInfo(),w=ci.unitWord,cv=e=>+(S.mode=='براد'?e[1]:e[2])||0,mul=e=>SHIPC.isOnce(e)?1:ci.n;
+  blocks.push('<h3>مصروفات '+esc(S.mode)+' في السعودية والنولون (ريال) — '+ci.n+' '+w+'</h3><table class="rt"><thead><tr><th>البند</th><th>لـ'+w+' واحدة</th><th>العدد</th><th>الإجمالي</th></tr></thead><tbody>'+S.exp.filter(e=>cv(e)).map(e=>'<tr><td>'+esc(e[0])+'</td><td class="n">'+f(cv(e))+'</td><td class="n">'+(SHIPC.isOnce(e)?'مرة للشحنة':'× '+ci.n)+'</td><td class="n">'+f(cv(e)*mul(e))+'</td></tr>').join('')+'<tr class="st"><td>إجمالي المصروفات</td><td class="n">'+f(ci.expPer+ci.expOnce)+'</td><td></td><td class="n">'+f(r.expT)+'</td></tr><tr><td>النولون من مصر'+(ci.frCur==='$'?' ('+f(ci.frUnit)+'$)':'')+'</td><td class="n">'+f(ci.frSar)+'</td><td class="n">× '+ci.n+'</td><td class="n">'+f(-r.frV)+'</td></tr><tr class="gt"><td>الإجمالي</td><td class="n">'+f(ci.frSar+ci.expPer+ci.expOnce)+'</td><td></td><td class="n">'+f(r.expT-r.frV)+'</td></tr></tbody></table><div class="note">'+esc(SHIPC.text(ci))+'. الشحنة '+f(ci.pal,0)+' باليت ÷ سعة '+f(ci.cap,0)+' = '+ci.n+' '+w+'. موزّعة على الأصناف حسب الوزن.</div>')}
+  blocks.push('<h3>ملاحظات</h3><ul><li>العمولة نسبة من مبيعات كل سطر حسب العميل.</li><li>مصروفات السعودية والنولون موزّعة حسب الوزن (الكراتين × وزن العبوة).</li><li>نولون الحاوية بالدولار والبراد بالريال، والنولون والمصروفات لكل حاوية/براد مضروبين في عدد الحاويات (البند الثابت للشحنة مرة واحدة).</li><li>تكلفة الطن تتكتب لكل صنف؛ الربح/الخسارة والتعادل للمتجمع بالمتوسط المرجّح حسب وزن كل صنف.</li></ul>')}
  return {p1,blocks,head:head('تفاصيل الصوافي — '+esc(S.client)),code}}
 const AVAIL=1123-36-62;
 /* بيبني الصفحات جوه root (لازم يكون ظاهر عشان القياس) */
@@ -393,7 +400,7 @@ function sharePdf(){/* in-app preview; «إرسال واتساب» inside it sha
  $('#busy').hidden=false;makePdf().then(pdf=>{const blob=pdf.output('blob'),name=fname();window.__lastPdf={size:blob.size,name:name};$('#busy').hidden=true;
   PdfShare.open(blob,name,{title:name.replace('.pdf','').replace(/_/g,' ')})})
  .catch(e=>{$('#busy').hidden=true;alert('ماقدرتش أجهز الـ PDF: '+(e&&e.message||e))})}
-window.SFAPP={PRODPK,nameOf,setMode:m=>{REPMODE=m},makePdf,state:()=>S,render:renderAll,calc:()=>calc(S),result,layout,repParts,D,today,cairoISO,parseDateInput,migrateLines,syncQty,palTotals,attachCosts,lineCost,hasCost,autoInfo,applyAuto};
+window.SFAPP={PRODPK,nameOf,setMode:m=>{REPMODE=m},makePdf,state:()=>S,render:renderAll,calc:()=>shipCalc(),calc1:()=>calc(S),contInfo,result,layout,repParts,D,today,cairoISO,parseDateInput,migrateLines,syncQty,palTotals,attachCosts,lineCost,hasCost,autoInfo,applyAuto};
 renderAll();
 restoreFromIdb();
 /* v2.4.0: التكاليف اتغيرت (تاب تاني أو رجعت من قسم التكاليف) → التكلفة التلقائية تتحدث */
