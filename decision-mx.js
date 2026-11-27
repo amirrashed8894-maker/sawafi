@@ -98,9 +98,8 @@ function out(){const D=data();fix(D);const T=tgt();const G=BEMX.grid(BE,SafiAuto
 function bad(t,on){t.classList.toggle('bad',!!on)}
 function writeRaw(v,x){let p=null;try{p=JSON.parse(lsGet('citrusCosts.v2')||'null')}catch(e){}const S=p&&p.S?p.S:JSON.parse(JSON.stringify(DECAPP.state().costs));
  if(!S.rawBy||typeof S.rawBy!=='object'||Array.isArray(S.rawBy))S.rawBy={};S.rawBy[v]=x;if(S.variety===v)S.raw=x;lsSet('citrusCosts.v2',JSON.stringify({ver:2,t:Date.now(),S}))}
-function addItem(v,pk){const D=data();const c=BEMX.cell(BE,SafiAuto,D.safi,D.costs,D.dec,MX,v,pk,{},null);let p=null;try{p=JSON.parse(lsGet('decision.v1')||'null')}catch(e){}
- const S=p&&p.S?p.S:JSON.parse(JSON.stringify(D.dec));S.items=Array.isArray(S.items)?S.items:[];S.items.push({v,sz:'',pk,cpp:c.cpp.v||'',p:c.price.v||'',pal:0,max:'',share:''});
- const j=JSON.stringify({ver:1,t:Date.now(),S});lsSet('decision.v1',j);lsSet('decision.v1.mirror',j);DECAPP.render()}
+/* v2.6.0: «+ للشحنة» = سطر جديد في الصوافي (الشحنة واحدة) */
+function addItem(v,pk){const D=data();const c=BEMX.cell(BE,SafiAuto,D.safi,D.costs,D.dec,MX,v,pk,{},null);DECAPP.addLine({v,sz:'',pk,cpp:c.cpp.v||'',p:c.price.v||'',pal:0})}
 document.addEventListener('input',e=>{const t=e.target;if(!t.dataset)return;
  if(t.dataset.mxp!=null){const raw=String(t.value).trim();if(raw===''){delete MX.p[t.dataset.mxp];bad(t,0)}else{const x=parseNum(raw);if(!(x>0)){bad(t,1);return}bad(t,0);MX.p[t.dataset.mxp]=x}saveMx();out();return}
  if(t.dataset.mxc!=null){const raw=String(t.value).trim();if(raw===''){delete MX.cpp[t.dataset.mxc];bad(t,0)}else{const x=parseNum(raw);if(!(x>0)){bad(t,1);return}bad(t,0);MX.cpp[t.dataset.mxc]=x}saveMx();out();return}

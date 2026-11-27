@@ -251,3 +251,4 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .acb.re{font:inherit;font-size:12.5px;font-weight:800;color:var(--ink);background:#fff;border:1.5px dashed #999;border-radius:999px;padding:3px 10px;cursor:pointer;width:auto;-webkit-tap-highlight-color:transparent}
 .acb.re:active{opacity:.7}
 @media print{.acb{display:none!important}}
+.ltBox{display:block;font-size:12px;color:var(--mut,#777);font-weight:700}.ltBox.warn{color:#b45309}

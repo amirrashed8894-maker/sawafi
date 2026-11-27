@@ -1,5 +1,5 @@
 /* الصوافي — الواجهة والتقرير (v1.2.0). الحساب كله من calc() الأصلية في core.js */
-const VER='2.5.0';
+const VER='2.6.0';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي */
 const SK='safiNetback.v2';
 /* التخزين: localStorage، ولو مش متاح (تصفح خاص/قيود الجهاز) نشتغل في الذاكرة ونظهر تنبيه.
@@ -235,7 +235,9 @@ function renderLive(){if(applyAuto())save();const E=errList(),bad=E.length>0;doc
   if(!(+l[2])){e.innerHTML='<span class="clab">ربح / خسارة</span><b class="need">—</b>';return}
   if(!x||x.plTon==null){e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="need">'+needCost()+'</b>';return}
   e.innerHTML='<span class="clab">ربح / خسارة للطن</span><b class="'+(x.plTon<0?'neg':'')+'">'+plH(x.plTon)+' ج</b>'});
- const tot=palTotals(),lt=$('#ltTot');if(lt)lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>';paintAuto()}
+ const tot=palTotals(),lt=$('#ltTot');if(lt){const cp=capOf(),nb=cp>0?Math.ceil(tot.pal/cp-1e-9):0;lt.innerHTML='<span>الإجمالي من كل الأصناف</span><b class="num">'+f(tot.pal,0)+' باليت</b><b class="num">'+f(tot.ctn,0)+' كرتونة</b>'+(cp>0&&tot.pal?'<small class="ltBox'+(tot.pal>cp?' warn':'')+'">= <span class="num">'+nb+'</span> '+S.mode+' (السعة <span class="num">'+f(cp,0)+'</span> من القرار)'+(tot.pal>cp?' — النولون والمصروفات المكتوبين هنا محسوبين مرة واحدة':'')+'</small>':'')}paintAuto()}
+/* v2.6.0: سعة الحاوية/البراد من إعدادات القرار (نفس الرقم في الصفحتين) */
+function capOf(){try{const p=JSON.parse(lsGet('decision.v1')||'null');const c=p&&p.S&&p.S.cap;const v=c&&+c[S.mode];if(v>0)return v}catch(e){}return S.mode==='براد'?23:21}
 function renderAll(){if(applyAuto())save();renderChips();renderInputs();renderTables();renderLive();showSaved();renderTools();$('#ver').textContent='· v'+VER}
 
 /* ---------- الأحداث ---------- */
@@ -399,3 +401,9 @@ function costsChanged(){if(!AUTO_ON)return;const before=AC.raw;costsData();if(AC
 window.addEventListener('storage',e=>{if(e.key==='citrusCosts.v2'||e.key==='citrusCosts')costsChanged()});
 window.addEventListener('pageshow',costsChanged);
 document.addEventListener('focusout',e=>{const t=e.target;if(t&&t.dataset&&/^lines:\d+:6$/.test(t.dataset.t||''))setTimeout(paintAuto,0)});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')costsChanged()});
+/* v2.6.0 — الشحنة واحدة مع القرار: لو صفحة القرار عدّلت السطور (تاب تاني، أو رجعت للصفحة) نقرا من جديد من غير ما نلمس خانة بتكتب فيها */
+function shipChanged(){if(Object.keys(ERR).length)return;const a=document.activeElement,k=a&&a.dataset&&a.dataset.t!=null?a.dataset.t:null;const st=readState(SK)||readState(SK_M);if(!st)return;
+ const S2=fromObj(st.S);try{ExpMig.migrateExp(S2)}catch(e){}migrateLines(S2.lines);if(JSON.stringify(S2)===JSON.stringify(S))return;S=S2;renderAll();
+ if(k){const n=document.querySelector('[data-t="'+CSS.escape(k)+'"]');if(n){try{n.focus({preventScroll:true})}catch(e){}}}}
+window.addEventListener('storage',e=>{if(e.key===SK||e.key==='decision.v1')shipChanged()});window.addEventListener('pageshow',e=>{if(e.persisted)shipChanged()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')shipChanged()});

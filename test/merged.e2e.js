@@ -14,7 +14,7 @@ async function fresh(bt,name,opts,shots){const b=await launch(bt);const ctx=awai
  assert.ok((await pg.textContent('#be .be-modes .chip.on')).includes('الحاوية'),'container default');
  assert.strictEqual(await pg.inputValue('input[data-h="egp"]'),'53.5');assert.strictEqual(await pg.inputValue('input[data-h="fC"]'),'2800');assert.strictEqual(await pg.inputValue('input[data-h="cap.حاوية"]'),'21');
  // الرقم في الشاشة = الحساب في المحرك
- const st=await pg.evaluate(()=>DECAPP.state());const C=BE.ctx(st.safi,st.costs,st.dec,'حاوية');const exp=BE.planBE(C,st.dec.items,st.dec.items.map(i=>i.pal)).R;
+ const st=await pg.evaluate(()=>DECAPP.state());BE.usePkg(require('../be-ship.js').pkgHook(st.costs,require('../costs-calc.js'),require('../safi-autocost.js')));const C=BE.ctx(st.safi,st.costs,st.dec,'حاوية');const exp=BE.planBE(C,st.dec.items,st.dec.items.map(i=>i.pal)).R;
  assert.strictEqual(num(await kpi(pg)).toFixed(2),exp.toFixed(2),'kpi = engine');
  assert.strictEqual((await ls(pg,'citrusCosts.v2')).usd,53.5,'costs FX synced');
  assert.ok((await pg.textContent('#beSrc')).includes('8,500.00'),'container expenses 8,500');
@@ -79,7 +79,7 @@ async function migration(bt,name,opts){const b=await launch(bt);const ctx=await 
  assert.strictEqual(s.mode,'براد','saved mode kept');
  assert.deepStrictEqual(s.exp,[['مصروفات البراد',6500,0],['تخليص',0,5076]],'custom container expenses untouched');assert.strictEqual(s.egp,53,'saved FX kept');assert.strictEqual(s.fC,2800,'freight filled once');assert.strictEqual(s.lines.length,2);assert.strictEqual(s.lines[0][6],20886);
  assert.strictEqual((await ls(pg,'citrusCosts.v2')).usd,53);assert.ok((await pg.textContent('#hin')).includes('2,800$'),'notice');
- await pg.click('[data-ha="fromSales"]');await pg.waitForTimeout(100);assert.strictEqual(await pg.inputValue('input[data-h="items.0.pal"]'),'12');assert.strictEqual(await pg.inputValue('select[data-hs="items.0.sz"]'),'24');
+ /* v2.6.0: مفيش «نسخ من مبيعات الصوافي» — أصناف القرار هي سطور الصوافي على طول */assert.strictEqual(await pg.$('[data-ha="fromSales"]'),null);assert.strictEqual(await pg.inputValue('input[data-h="items.0.pal"]'),'12');assert.strictEqual(await pg.inputValue('select[data-hs="items.0.sz"]'),'24');
  await pg.fill('input[data-h="fC"]','0');await pg.reload();await pg.waitForSelector('#be .be-main b');assert.strictEqual(await pg.inputValue('input[data-h="fC"]'),'0','migration only once');
  assert.ok((await pg.textContent('#beWarn')).includes('نولون الحاوية مش متدخل'));
  await pg.goto(URL+'safi.html');await pg.waitForSelector('#lt');assert.ok((await pg.textContent('#modes .chip.on')).includes('براد'));assert.strictEqual(await pg.$$eval('#lt .ln',L=>L.length),2);

@@ -17,14 +17,15 @@ function readSafi(tpl,pinned){for(const k of ['safiNetback.v2','safiNetback.v2.m
  const up=unwrap(lsGet('safiNetback.v2.userPinned'));return {S:mig(fromObj(tpl,JSON.parse(JSON.stringify(up&&okSafi(up.S)?up.S:pinned)))),src:'fresh'}}
 function readDec(BE){for(const k of ['decision.v1','decision.v1.mirror']){const u=unwrap(lsGet(k));if(u&&u.S&&typeof u.S==='object')return BE.decFrom(u.S)}return BE.decFrom(null)}
 /* tw = BE.twoWay(...)؛ o.compact = صندوق قسم التكاليف */
+function rawList(its){const L=[];(its||[]).forEach(x=>{if(x.raw==null)return;const t=esc(x.v||'—')+' '+N(x.raw);if(L.indexOf(t)<0)L.push(t)});return L.join(' · ')||'—'}
 function html(tw,o){o=o||{};const A=tw.base,B=tw.sec,raw=tw.raw;const its=A.items;
  const rows=its.map((x,i)=>{const y=B.items[i];const ok=x.ok&&x.p>0;const good=ok&&x.gap>=0;
   return '<tr data-two="'+i+'"><td>'+esc(label(x)||'—')+'<small>'+esc(x.pk)+'</small></td><td class="vh num two-a"><b>'+nf(x.minP)+'</b></td><td class="vh num two-b">'+nf(y.minP)+'</td><td class="vh">'+(ok?'<span class="num">'+nf(x.p)+'</span> <em class="'+(good?'ok2':'bad2')+'">'+(good?'✓ ':'✗ ')+'<span class="num">'+(x.gap>=0?'+':'')+nf(x.gap)+'</span></em>':'—')+'</td></tr>'}).join('');
- const verdict=p=>p.R==null?'<em class="sm2">اكتب الأصناف والباليتات</em>':p.R<=0?'<em class="bad2">مفيش سعر خام يعادل</em>':raw<=p.R?'<em class="ok2">✓ هامش '+N(p.R-raw)+' على خام '+N(raw)+'</em>':'<em class="bad2">✗ خام '+N(raw)+' أعلى بـ '+N(raw-p.R)+'</em>';
+ const verdict=p=>p.R==null?'<em class="sm2">اكتب الأصناف والباليتات</em>':p.R<=0?'<em class="bad2">مفيش سعر خام يعادل</em>':(()=>{const d=p.profit!=null&&p.T>0&&p.C?p.profit/(p.C.k*p.T):p.R-raw;return d>=0?'<em class="ok2">✓ هامش '+N(d)+' على خام كل صنف</em>':'<em class="bad2">✗ الخام أعلى بـ '+N(-d)+'</em>'})();
  const big=(p,main)=>'<div class="two-k'+(main?' main':'')+'"><span>'+modeName(p.m)+(main?' (أساسي)':' (فرعي)')+'</span><b>'+(p.R==null?'—':N(p.R)+' <i>ج/كجم</i>')+'</b>'+(main||!o.compact?verdict(p):'')+'</div>';
  const alone=o.compact?'':'<table class="two-t sm"><tr class="h"><td>لو الصنف مالي الشحنة لوحده</td><td class="vh">'+modeName(A.m)+'</td><td class="vh">'+modeName(B.m)+'</td></tr>'+its.map((x,i)=>'<tr><td>'+esc(label(x)||'—')+'<small>'+esc(x.pk)+'</small></td><td class="vh num">'+nf(x.Ralone)+'</td><td class="vh num">'+nf(B.items[i].Ralone)+'</td></tr>').join('')+'</table>';
  return '<div class="two'+(o.compact?' compact':'')+'">'+
-  '<div class="two-p" id="twoSell"><div class="two-h"><b>① سعر تعادل البيع</b><span>أقل سعر بيع للكرتونة بالريال — على خام النهارده '+N(raw)+' ج/كجم</span></div>'+
+  '<div class="two-p" id="twoSell"><div class="two-h"><b>① سعر تعادل البيع</b><span>أقل سعر بيع للكرتونة بالريال — على خام كل صنف من التكاليف: '+rawList(its)+'</span></div>'+
    '<table class="two-t"><tr class="h"><td>الصنف · العبوة</td><td class="vh">'+modeName(A.m)+'</td><td class="vh">'+modeName(B.m)+'</td><td class="vh">سعرك</td></tr>'+(rows||'<tr><td colspan="4">مفيش أصناف</td></tr>')+'</table>'+
    '<div class="hint">ريال/كرتونة. أقل سعر = اللي يخلّي ربح شحنة مالية من الصنف ده صفر على سعر الخام ده (بعد العمولة ومصروفات السعودية والنولون وتكاليف مصر).</div></div>'+
   '<div class="two-p" id="twoBuy"><div class="two-h"><b>② سعر التعادل لشراء الخام</b><span>أعلى سعر لشراء الخام ج/كجم واصل المحطة — على أسعار البيع وخطة الباليتات</span></div>'+
@@ -49,7 +50,7 @@ function scenPanel(s,o){if(!s||!s.ok)return '<div class="hint">اكتب العب
   '<div class="hint">على خام '+nf(s.raw)+' ج/كجم و'+modeName(s.m)+' مالية من الصنف ده ('+nf(s.cap,0)+' باليت · '+nf(s.cartons,0)+' كرتونة · '+nf(s.T,2)+' طن). أقل سعر للتعادل '+nf(s.minP)+' ريال.</div>'}
 function scenHTML(tw,o){o=o||{};const ms=tw.modes;if(SEL.m==null||!ms.some(M=>M.m===SEL.m))SEL.m=ms[0].m;const n=ms[0].scen.length;if(SEL.i>=n)SEL.i=0;if(!n)return '';
  const lab=s=>esc([[s.v,s.sz].filter(Boolean).join(' '),s.pk].filter(Boolean).join(' · ')||'—');
- return '<div class="scen'+(o.compact?' compact':'')+'" id="'+(o.id||'scen')+'"><div class="two-h"><b>③ التكاليف وأسعار البيع والسيناريوهات</b><span>كل 1 ريال فوق وتحت سعر الكرتونة لحد 7 ريال — على خام النهارده '+N(tw.raw)+' ج/كجم</span></div>'+
+ return '<div class="scen'+(o.compact?' compact':'')+'" id="'+(o.id||'scen')+'"><div class="two-h"><b>③ التكاليف وأسعار البيع والسيناريوهات</b><span>كل 1 ريال فوق وتحت سعر الكرتونة لحد 7 ريال — على خام الصنف من التكاليف</span></div>'+
   '<div class="sc-ch">'+ms[0].scen.map((s,i)=>'<button type="button" class="sc-chip'+(i===SEL.i?' on':'')+'" data-sc-i="'+i+'">'+lab(s)+'</button>').join('')+'</div>'+
   '<div class="sc-ch">'+ms.map((M,j)=>'<button type="button" class="sc-chip sm'+(M.m===SEL.m?' on':'')+'" data-sc-m="'+esc(M.m)+'">'+modeName(M.m)+(j?' (فرعي)':' (أساسي)')+'</button>').join('')+'</div>'+
   ms.map(M=>M.scen.map((s,i)=>'<div class="sc-p'+(i===SEL.i&&M.m===SEL.m?' on':'')+'" data-sp="'+i+'|'+esc(M.m)+'">'+scenPanel(s,o)+'</div>').join('')).join('')+'</div>'}
