@@ -247,6 +247,14 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .bk td.v.sm{font-size:12.5px;font-weight:600;line-height:1.7;white-space:normal}
 .sm-in{width:70px;font:inherit;font-size:16px;padding:4px 6px;border:1px solid #cfcfcf;border-radius:8px;text-align:center;direction:ltr}.sm-in.bad{border-color:#b00;background:#fff3f3}
 .be-c input.bad{border-color:#b00;background:#fff3f3}
+
+@media(max-width:430px){
+  #pt .r4{grid-template-columns:repeat(3,minmax(0,1fr)) 38px;gap:6px}
+  #pt .r4>:first-child{grid-column:1/-2}
+  #pt .r4>button.x{grid-column:4;grid-row:1}
+  .nwin.pkn.pkadd,.ln .nwin.pkn{grid-template-columns:1fr;gap:6px}
+  .nwin.pkn.pkadd>button,.ln .nwin.pkn>button{width:100%}
+}
 </style>
 </head>
 <body>
@@ -321,7 +329,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="exp-migrate.js?v=201"></script>
 <script src="pdf-share.js"></script>
 <script src="sizes.js?v=2"></script>
-<script src="app.js?v=221"></script>
+<script src="app.js?v=222"></script>
 
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}

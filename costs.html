@@ -172,7 +172,12 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .pkform-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .pkform-act{display:flex;gap:8px;margin-top:4px}
 .pkform-act .btn{flex:1}
-@media(max-width:430px){.trow.pk4{grid-template-columns:minmax(0,1fr) 64px 64px 70px;gap:6px}.pkform-row{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){
+  .trow.pk4{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .trow.pk4>:first-child{grid-column:1/-1}
+  .pkform-row{grid-template-columns:1fr}
+  .pkform input{width:100%}
+}
 </style>
 <style>/* «القرار في الاتجاهين» — الشاشة بس */
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
@@ -279,7 +284,7 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="nav.js?v=200"></script>
 <script src="costs-core.js?v=221"></script>
 <script src="pdf-share.js"></script>
-<script src="costs-app.js?v=221"></script>
+<script src="costs-app.js?v=222"></script>
 <script src="be-core.js?v=220"></script>
 <script src="costs-io.js?v=221"></script>
 <script src="exp-migrate.js?v=201"></script>
