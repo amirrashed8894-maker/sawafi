@@ -1,7 +1,7 @@
 /* تكاليف الموالح — الواجهة والتقرير (v2.2.0: + محلي سوبرماركت بدل جزء من الفرزة، calcX في costs-core.js). الحساب كله من calc() الأصلية في core.js */
-const VER='2.2.2';
+const VER='2.3.0';
 /* calcX = calc الأصلية + فرق السوبرماركت (لو النسبة صفر = calc بالظبط). لو ملف قديم في الكاش من غير calcX، نرجع لـ calc */
-const CALC=typeof calcX==='function'?calcX:calc;const SMON=()=>typeof smState==='function';
+const CALC=typeof calcMix==='function'?calcMix:(typeof calcX==='function'?calcX:calc);const SMON=()=>typeof smState==='function';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي (منسوخ حرفيًا) */
 const SK='citrusCosts.v2';let S=_ld(SK,'citrusCosts');applyFreshDate();if(S.sar==null)S.sar=3.75;if(S.var&&S.var.some(v=>v[0]=='برتقال')){S.var=S.var.flatMap(v=>v[0]=='برتقال'?[['برتقال أبوسرة',v[1]],['برتقال بلدي',v[1]],['برتقال صيفي',v[1]]]:[v]);}if(S.variety=='برتقال')S.variety='برتقال أبوسرة';
 const $=s=>document.querySelector(s);
@@ -45,9 +45,34 @@ function renderTables(){
  $('#supt').innerHTML=S.sup.map((p,i)=>'<div class="sup">'+cell('sup:'+i+':0',p[0])+cell('sup:'+i+':1',p[1],'v')+'</div>').join('')+'<div class="suptot"><span>إجمالي المستلزمات</span><span class="num" id="supTot"></span></div>';
  $('#vart').innerHTML=S.var.map((p,i)=>'<div class="sup three">'+cell('var:'+i+':0',p[0])+cell('var:'+i+':1',p[1],'v')+'<button class="x" data-dv="'+i+'" aria-label="حذف">×</button></div>').join('');
  Object.keys(ERR).filter(k=>!k.startsWith('k:')).forEach(k=>{const el=document.querySelector('[data-t="'+k+'"]');if(el)markBad(el,k)})}
+function mixIdx(){const m=typeof mixList==='function'?mixList(S):null;return m?m.map(x=>x.i):(S.pkg!=null?[S.pkg]:[])}
+function isMix(){return !!(typeof mixList==='function'&&mixList(S))}
 function renderChips(){
  $('#vars').innerHTML=S.var.map((v,i)=>'<button class="chip'+(v[0]===S.variety?' on':'')+'" data-v="'+i+'">'+esc(v[0])+'</button>').join('')+'<button class="chip add" id="addVar">+ صنف جديد</button>';
- $('#pkgs').innerHTML=S.pk.map((p,i)=>'<button class="chip sm'+(i==S.pkg?' on':'')+'" data-p="'+i+'">'+esc(p[0])+'</button>').join('')+'<button class="chip add sm" id="addPk">+ عبوة جديدة</button>'}
+ const on=mixIdx();
+ $('#pkgs').innerHTML=S.pk.map((p,i)=>'<button class="chip sm'+(on.indexOf(i)>=0?' on':'')+'" data-p="'+i+'">'+esc(p[0])+'</button>').join('')+'<button class="chip add sm" id="addPk">+ عبوة جديدة</button>';
+ renderMix()}
+function renderMix(){let host=$('#mix');if(!host){host=document.createElement('section');host.id='mix';host.className='card mixcard';const pkgs=$('#pkgs');if(pkgs&&pkgs.parentNode)pkgs.parentNode.insertBefore(host,pkgs.nextSibling);else return}
+ const selected=mixIdx(),mixOn=isMix();
+ const others=S.pk.map((p,i)=>({i,p})).filter(x=>selected.indexOf(x.i)<0);
+ let h='<div class="mixbar"><span class="mixhint">'+(mixOn?'خلطة عبوات لنفس الصنف — الحصّة بعدد باليتات الحاوية':'عبوة واحدة. تقدر تضيف عبوة كمان لنفس الصنف في الحاوية.')+'</span>';
+ if(others.length)h+='<button class="btn ghost" id="bMixAdd" type="button">+ عبوة كمان في نفس الحاوية</button>';
+ h+='</div>';
+ if($('#mixPick')){}
+ if(mixOn){const r=CALC(S),u=S.usd,rows=(r.mix&&r.mix.rows)||[];
+  h+='<div class="mixt"><div class="mixh"><span>العبوة</span><span>باليت</span><span>صافي</span><span>%</span></div>';
+  rows.forEach(x=>{const pn=typeof palNetKg==='function'?palNetKg(S.pk[x.i]||[]):0;
+   h+='<div class="mixr"><div class="mixn">'+esc(x.name)+'</div><div class="mixf">';
+   if(pn>0)h+='<label>باليتات<input class="v" inputmode="decimal" data-mixpal="'+x.i+'" value="'+esc(x.pal||'')+'"></label>';
+   else h+='<label>صناديق/باليت<input class="v" inputmode="decimal" data-mixbpp="'+x.i+'" placeholder="اكتب العدد" value=""></label><label>طن صافي<input class="v" inputmode="decimal" data-mixnet="'+x.i+'" value="'+esc(+(x.net/1000).toFixed(3))+'"></label>';
+   h+='</div><div class="mixq"><span class="num">'+f(x.net/1000,2)+' طن</span><span class="num">'+f(x.pct,1)+'%</span></div><button class="x" data-mixdel="'+x.i+'" aria-label="شيل من الخلطة">×</button></div>'});
+  const gap=Math.abs((r.mix.totNet||0)-S.net);
+  h+='<div class="mixsum">الموزّع '+N(f((r.mix.totNet||0)/1000,2))+' طن من الحاوية '+N(f(S.net/1000,1))+' طن';
+  if(r.mix.totPal)h+=' · '+N(f(r.mix.totPal,0))+' باليت';
+  if(gap>1)h+=' <em>قرّب التوزيع من صافي الحاوية</em>';
+  h+='</div></div>'}
+ host.innerHTML=h;
+ const pick=$('#mixPick');if(pick)pick.hidden=true}
 function errList(all){const L=[];Object.keys(ERR).forEach(k=>{if(!all&&k==='date')return;const a=k.split(':');let nm;
   if(k==='date')nm='تاريخ الحساب';else if(a[0]=='k')nm=RULES[a[1]][0];else if(a[0]=='pk')nm=(a[2]=='1'?'سعر ':a[2]=='3'?'صناديق الباليت لـ ':'وزن ')+'«'+(S.pk[a[1]]||[''])[0]+'»';else if(a[0]=='sup')nm='بند «'+(S.sup[a[1]]||[''])[0]+'»';else if(a[0]=='sm')nm={p:'نسبة السوبرماركت من الفرزة',price:'سعر بيع السوبرماركت',oth:'مصاريف تانية للصندوق'}[a[1]]||'السوبرماركت';else if(a[0]=='smb'){const b=(SMON()?smState(S).bx[a[1]]:null)||[''];nm=(a[2]=='1'?'سعر ':a[2]=='2'?'صافي فاكهة ':'وزن ')+'«'+b[0]+'»'}else nm='غسيل «'+(S.var[a[1]]||[''])[0]+'»';
   L.push(nm+': '+ERR[k])});if(SMON()){const x=smOf(S);if(x.over)L.push('توزيع الخام: الفرزة '+f(S.cull*100,1)+'% + السوبرماركت '+f(x.share*100,1)+'% لازم أقل من 100% (وإلا مفيش تصدير)')}return L}
@@ -61,23 +86,38 @@ function renderLive(){const E=errList(),bad=E.length>0;document.body.classList.t
  if(bad){$('#sum').innerHTML='<div class="lbl">تكلفة الطن الصافي ظهر الحاوية</div><div class="big"><span class="egp num">—</span></div><div class="err"><b>مفيش حساب لحد ما تصحح الخانات المعلّمة:</b><ul>'+E.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>';
   ['#mojmal','#cmp','#detail'].forEach(s=>$(s).innerHTML='<h2>'+{'#mojmal':'المجمل','#cmp':'مقارنة العبوات','#detail':'التفاصيل'}[s]+'</h2><div class="hint">هيظهر بعد تصحيح المدخلات.</div>');const st=$('#supTot');if(st)st.textContent='—';const so=$('#smOut');if(so){const sx=SMON()?smOf(S):null;if(sx&&sx.over)renderSMOut({sm:sx});else so.innerHTML='<div class="hint">هيظهر بعد تصحيح المدخلات.</div>'}return}
  const r=CALC(S),u=S.usd,T=S.net/1000;window.__r=r;renderSMOut(r);
- $('#sum').innerHTML='<div class="lbl">تكلفة الطن الصافي ظهر الحاوية — '+esc(S.variety)+' · '+esc(r.pkgName)+'</div><div class="big"><span class="egp num">'+f(r.ton)+'<i>ج</i></span><span class="usd num">$'+f(r.ton/u)+'</span></div>'+
-  '<div class="kpis">'+
-  '<div class="kpi"><span>الكيلو</span><b class="num">'+f(r.kg)+' ج</b><em class="num">$'+f(r.kg/u,3)+'</em></div>'+
-  '<div class="kpi"><span>العبوة معبأة ('+f(r.pkgW,1)+' ك)</span><b class="num">'+f(r.perPkg)+' ج</b><em class="num">$'+f(r.perPkg/u,3)+'</em></div>'+
-  '<div class="kpi"><span>الحاوية ('+f(T,1)+' طن)</span><b class="num">'+f(r.cont)+' ج</b><em class="num">$'+f(r.cont/u)+'</em></div>'+
-  '<div class="kpi"><span>الكرتونة بالريال أرض المحطة</span><b class="num">'+f(r.perPkg/u*S.sar)+' ريال</b><em class="num">'+f(r.ton/u*S.sar)+' ريال / طن</em></div></div>';
+ const mix=r.mix&&r.mix.rows;
+ const lbl='تكلفة الطن الصافي ظهر الحاوية — '+esc(S.variety)+' · '+(mix?'خلطة: '+esc(mix.map(x=>x.name+' ('+f(x.pct,0)+'%)').join(' + ')):esc(r.pkgName));
+ let kpis='<div class="kpi"><span>الكيلو</span><b class="num">'+f(r.kg)+' ج</b><em class="num">$'+f(r.kg/u,3)+'</em></div>';
+ if(!mix)kpis+='<div class="kpi"><span>العبوة معبأة ('+f(r.pkgW,1)+' ك)</span><b class="num">'+f(r.perPkg)+' ج</b><em class="num">$'+f(r.perPkg/u,3)+'</em></div>';
+ kpis+='<div class="kpi"><span>الحاوية ('+f(T,1)+' طن)</span><b class="num">'+f(r.cont)+' ج</b><em class="num">$'+f(r.cont/u)+'</em></div>';
+ if(!mix)kpis+='<div class="kpi"><span>الكرتونة بالريال أرض المحطة</span><b class="num">'+f(r.perPkg/u*S.sar)+' ريال</b><em class="num">'+f(r.ton/u*S.sar)+' ريال / طن</em></div>';
+ else kpis+='<div class="kpi"><span>المتوسط المرجّح بالريال / طن</span><b class="num">'+f(r.ton/u*S.sar)+' ريال</b><em>حسب حصص الباليت</em></div>';
+ let packRows='';
+ if(mix)packRows='<div class="mixcosts"><div class="mixcosts-h">تكلفة كل عبوة في الخلطة <small>ج / طن صافي</small></div>'+mix.map(x=>'<div class="mixc"><b>'+esc(x.name)+'</b><span>'+f(x.pct,1)+'% · '+f(x.net/1000,2)+' طن'+(x.pal?' · '+f(x.pal,0)+' باليت':'')+'</span><strong class="num">'+f(x.ton)+' ج</strong><em class="num">$'+f(x.ton/u)+'</em></div>').join('')+'<div class="mixc tot"><b>الإجمالي المرجّح</b><span>للحاوية كلها</span><strong class="num">'+f(r.ton)+' ج</strong><em class="num">$'+f(r.ton/u)+'</em></div></div>';
+ $('#sum').innerHTML='<div class="lbl">'+lbl+'</div><div class="big"><span class="egp num">'+f(r.ton)+'<i>ج</i></span><span class="usd num">$'+f(r.ton/u)+'</span></div>'+
+  '<div class="kpis">'+kpis+'</div>'+packRows;
  const G=groups(r);
  $('#mojmal').innerHTML='<h2>المجمل <small>ج / طن صافي</small></h2><div class="bar">'+G.map(g=>'<i style="width:'+(r.ton?g[1]/r.ton*100:0)+'%"></i>').join('')+'</div><div class="bk"><table>'+
   G.map((g,i)=>'<tr><td><span class="sw s'+i+'"></span>'+g[0]+'</td><td class="v">'+f(g[1])+'</td><td class="v">'+P(r.ton?g[1]/r.ton*100:0)+'</td></tr>').join('')+
   '<tr class="t"><td>الإجمالي</td><td class="v">'+f(r.ton)+'</td><td class="v">$'+f(r.ton/u)+'</td></tr></table></div>';
  $('#cmp').innerHTML='<h2>مقارنة العبوات <small>تكلفة الطن الصافي</small></h2><div class="bk"><table><tr class="h"><td>العبوة</td><td class="vh">ج / طن</td><td class="vh">$ / طن</td><td class="vh">الفرق $</td></tr>'+
-  r.cmp.map((x,i)=>'<tr'+(x.n==r.pkgName?' class="sel"':'')+'><td>'+esc(x.n)+'</td><td class="v">'+f(x.v)+'</td><td class="v">'+f(x.v/u)+'</td><td class="v">'+(x.d<1e-9?'الأرخص':'+'+f(x.d))+'</td></tr>').join('')+'</table></div>';
+  r.cmp.map((x,i)=>'<tr'+((mix?mix.some(m=>m.name===x.n):x.n==r.pkgName)?' class="sel"':'')+'><td>'+esc(x.n)+'</td><td class="v">'+f(x.v)+'</td><td class="v">'+f(x.v/u)+'</td><td class="v">'+(x.d<1e-9?'الأرخص':'+'+f(x.d))+'</td></tr>').join('')+'</table></div>';
  let b='<h2>التفاصيل <small>لكل طن صافي</small></h2><div class="bk"><table><tr class="h"><td>البند</td><td class="vh">ج / طن</td><td class="vh">$ / طن</td><td class="vh">%</td></tr>';
  rows(r).forEach(x=>{if(x[0]=='g')b+='<tr class="g"><td colspan="4">'+esc(x[1])+'</td></tr>';else{const s=x[0]=='s',n=s?x[1]:x[0],v=s?x[2]:x[1];b+='<tr'+(s?' class="s"':'')+'><td>'+esc(n)+'</td><td class="v">'+f(v)+'</td><td class="v">'+f(v/u)+'</td><td class="v">'+P(v/r.ton*100)+'</td></tr>'}});
  b+='<tr class="t"><td>إجمالي تكلفة الطن الصافي</td><td class="v">'+f(r.ton)+'</td><td class="v">'+f(r.ton/u)+'</td><td class="v">100%</td></tr></table>'+
   '<div class="hint">الخام المطلوب للحاوية '+N(f(r.rawNeed))+' كجم · هالك '+N(f(r.lossKg))+' كجم · فرزة '+N(f(r.cullKg))+' كجم'+(r.smC!=null?' · سوبرماركت '+N(f(r.smKg))+' كجم ≈ '+N(f(Math.ceil(r.smBoxes-1e-9),0))+' صندوق':'')+' · عبوات معبأة '+N(f(r.packed,0))+' · مشتراة '+N(f(r.bought,0))+'</div></div>';
- $('#detail').innerHTML=b;const st=$('#supTot');if(st)st.textContent=f(r.supT)+' ج'}
+ $('#detail').innerHTML=b;const st=$('#supTot');if(st)st.textContent=f(r.supT)+' ج';
+ refreshMixNums(r);renderDecBlend(r)}
+function refreshMixNums(r){const host=$('#mix');if(!host||!r||!r.mix)return;
+ host.querySelectorAll('.mixr').forEach(row=>{const inp=row.querySelector('[data-mixpal],[data-mixnet]');if(!inp)return;const i=+(inp.dataset.mixpal||inp.dataset.mixnet);const x=r.mix.rows.find(z=>z.i===i);if(!x)return;
+  const q=row.querySelector('.mixq');if(q)q.innerHTML='<span class="num">'+f(x.net/1000,2)+' طن</span><span class="num">'+f(x.pct,1)+'%</span>'});
+ const s=host.querySelector('.mixsum');if(s){const gap=Math.abs((r.mix.totNet||0)-S.net);s.innerHTML='الموزّع '+N(f((r.mix.totNet||0)/1000,2))+' طن من الحاوية '+N(f(S.net/1000,1))+' طن'+(r.mix.totPal?' · '+N(f(r.mix.totPal,0))+' باليت':'')+(gap>1?' <em>قرّب التوزيع من صافي الحاوية</em>':'')}}
+function renderDecBlend(r){let n=$('#decBlend');const host=$('#costsDec');
+ if(!(r&&r.mix)){if(n)n.remove();return}
+ if(!n){n=document.createElement('div');n.id='decBlend';n.className='decblend';if(host)host.parentNode.insertBefore(n,host);else return}
+ const u=S.usd;
+ n.innerHTML='<b>القرار على تكلفة الخلطة المرجّحة</b> — طن '+N(f(r.ton))+' ج / $'+N(f(r.ton/u))+' · كيلو '+N(f(r.kg))+' ج · الحاوية '+N(f(r.cont))+' ج. أرقام «القرار» تحت لكل صنف وعبوة في خطة الباليتات؛ استخدم الرقم المرجّح ده كتكلفة الصنف في الحاوية.'}
 function renderAll(){renderChips();renderInputs();renderTables();renderSM();renderLive();showSaved();$('#ver').textContent='· v'+VER}
 
 /* ---------- محلي سوبرماركت (v2.2.0) — فرزة مقاسات 100-113: مخرج لوحده من الخام، في صندوق بلاستيك، بسعر شامل وزن الصندوق ---------- */
@@ -145,9 +185,16 @@ function markBad(el,key){const isK=!!(el.dataset.k||el.dataset.date||el.dataset.
 document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.date){const raw=t.value,iso=parseDateInput(raw);if(!String(raw).trim())setErr('date','فاضي — اكتب التاريخ يوم/شهر/سنة',raw);else if(!iso)setErr('date','اكتبه يوم/شهر/سنة ميلادي، زي 11/11/2026',raw);else{setErr('date','');S.date=iso}markBad(t,'date');save();return}
  if(t.dataset.k){const k=t.dataset.k,key='k:'+k,msg=checkVal(t.value,RULES[k][1]);setErr(key,msg,t.value);if(!msg)S[k]=toStore(t.value,PCT[k]);markBad(t,key);save();renderLive();return}
+ if(t.dataset.mixpal!=null||t.dataset.mixnet!=null){const i=+(t.dataset.mixpal!=null?t.dataset.mixpal:t.dataset.mixnet);const key=t.dataset.mixpal!=null?'mixpal:'+i:'mixnet:'+i;
+  const msg=checkVal(t.value,'ge0',true);setErr(key,msg,t.value);if(!msg && Array.isArray(S.mix)){S.mix=S.mix.map(r=>{if(+r.i!==i)return r;const p=S.pk[i],pn=typeof palNetKg==='function'?palNetKg(p):0;
+   if(t.dataset.mixpal!=null){const pal=toStore(t.value);return {i:i,pal:pal,net:pn>0?pal*pn:+r.net||0}}
+   const net=toStore(t.value)*1000;return {i:i,pal:+r.pal||0,net:net}});}markBad(t,key);save();renderLive();return}
+ if(t.dataset.mixbpp!=null){const i=+t.dataset.mixbpp,key='mixbpp:'+i,msg=checkVal(t.value,'gt0',true);setErr(key,msg,t.value);
+  if(!msg&&S.pk[i]){S.pk[i][3]=toStore(t.value);if(Array.isArray(S.mix))S.mix=S.mix.map(r=>{if(+r.i!==i)return r;const pn=palNetKg(S.pk[i]);const pal=+r.pal||(pn>0?Math.round((+r.net||0)/pn):0);return {i:i,pal:pal,net:pn>0?pal*pn:+r.net||0}})}
+  markBad(t,key);save();renderChips();renderLive();return}
  if(t.dataset.t){const [a,i,j]=t.dataset.t.split(':'),row=S[a][+i];if(!row)return;
   if(j=='0'){const old=row[0];row[0]=t.value;if(a=='var'&&S.variety==old)S.variety=t.value;save();renderLive();return}
-  const rule=(a=='pk'&&j=='2')?'gt0':'ge0',msg=checkVal(t.value,rule,true);setErr(t.dataset.t,msg,t.value);if(!msg)row[+j]=toStore(t.value);markBad(t,t.dataset.t);save();renderLive()}});
+  const rule=(a=='pk'&&j=='2')?'gt0':'ge0',msg=checkVal(t.value,rule,true);setErr(t.dataset.t,msg,t.value);if(!msg)row[+j]=toStore(t.value);if(a=='pk'&&j=='3'&&Array.isArray(S.mix)){S.mix=S.mix.map(r=>{if(+r.i!==+i)return r;const pn=typeof palNetKg==='function'?palNetKg(row):0;const pal=+r.pal||0;return {i:+i,pal:pal,net:pn>0?pal*pn:+r.net||0}})}markBad(t,t.dataset.t);save();if(a=='pk'&&(j=='2'||j=='3'))renderChips();renderLive()}});
 document.addEventListener('change',e=>{const t=e.target;
  if(t.dataset.date){const iso=parseDateInput(t.value);if(iso){S.date=iso;t.value=D(iso);setErr('date','');markBad(t,'date');save()}return}
  if(t.dataset.t&&t.dataset.t.endsWith(':0')){renderChips();return}
@@ -155,7 +202,14 @@ document.addEventListener('change',e=>{const t=e.target;
 function blocked(){const E=errList(true);if(!E.length)return false;alert('صحّح الخانات دي الأول:\n• '+E.join('\n• '));return true}
 document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
  if(t.dataset.v!=null){S.variety=S.var[+t.dataset.v][0];save();renderChips();renderLive()}
- else if(t.dataset.p!=null){S.pkg=+t.dataset.p;save();renderChips();renderLive()}
+ else if(t.dataset.p!=null){S.pkg=+t.dataset.p;S.mix=null;save();renderChips();renderLive()}
+ else if(t.id=='bMixAdd'){const host=$('#mix');if(!host)return;const selected=mixIdx();const opts=S.pk.map((p,i)=>selected.indexOf(i)<0?'<button class="chip sm" type="button" data-mixadd="'+i+'">'+esc(p[0])+'</button>':'').join('');
+  let box=$('#mixPick');if(!box){box=document.createElement('div');box.id='mixPick';box.className='mixpick';host.appendChild(box)}
+  box.hidden=false;box.innerHTML='<div class="mixpick-h">اختار عبوة تتضاف للحاوية</div><div class="mixpick-l">'+opts+'</div>'}
+ else if(t.dataset.mixadd!=null){const i=+t.dataset.mixadd,cur=mixIdx().slice();if(cur.indexOf(i)<0)cur.push(i);if(cur.indexOf(S.pkg)<0)cur.unshift(S.pkg);
+  S.mix=typeof defaultMix==='function'?defaultMix(S,cur):cur.map(ix=>({i:ix,pal:0,net:S.net/cur.length}));S.pkg=cur[0];save();renderChips();renderLive()}
+ else if(t.dataset.mixdel!=null){const i=+t.dataset.mixdel;let cur=mixIdx().filter(x=>x!==i);if(cur.length<2){S.mix=null;if(cur.length)S.pkg=cur[0];save();renderChips();renderLive();return}
+  const keep=(S.mix||[]).filter(r=>+r.i!==i);S.mix=keep;S.pkg=cur[0];save();renderChips();renderLive()}
  else if(t.id=='addVar'||t.id=='bAddVar'){const nm=(prompt('اسم الصنف الجديد:','صنف جديد')||'').trim();if(!nm)return;S.var.push([nm,1800]);S.variety=nm;save();renderAll()}
  else if(t.id=='addPk'||t.id=='bAddPk'){const box=$('#pkAdd');if(box){box.hidden=false;const i=box.querySelector('[data-npk=\'n\']');if(i){i.focus();box.scrollIntoView({block:'center'})}}return}
  else if(t.id=='bPkCancel'){const box=$('#pkAdd');if(box){box.hidden=true;box.querySelectorAll('input').forEach(i=>i.value='')}return}
@@ -166,7 +220,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
   if(S.pk.some(x=>x[0]===nm)){alert('العبوة «'+nm+'» موجودة');return}
   if(g('p').trim()&&!(pr>=0)){alert('سعر العبوة مكتوب غلط');return}
   if(g('b').trim()&&!(pal>=0)){alert('عدد الصناديق في الباليت مكتوب غلط');return}
-  S.pk.push([nm,g('p').trim()?pr:0,kg,g('b').trim()?pal:0]);S.pkg=S.pk.length-1;box.hidden=true;box.querySelectorAll('input').forEach(i=>i.value='');save();renderAll()}
+  S.pk.push([nm,g('p').trim()?pr:0,kg,g('b').trim()?pal:0]);S.pkg=S.pk.length-1;if(typeof ensureCostsCatalog==='function')ensureCostsCatalog(S);box.hidden=true;box.querySelectorAll('input').forEach(i=>i.value='');save();renderAll()}
  else if(t.dataset.dv!=null){const i=+t.dataset.dv,nm=S.var[i][0];if(!confirm('حذف صنف «'+nm+'» من جدول الغسيل؟'))return;S.var.splice(i,1);
   Object.keys(ERR).filter(k=>k.startsWith('var:')).forEach(k=>{delete ERR[k];delete DR[k]});if(S.variety==nm&&S.var.length)S.variety=S.var[0][0];save();renderAll()}
  else if(t.id=='bReset'){if(!confirm('ترجع للأرقام الأصلية؟ كل أرقامك هتتمسح.'))return;S=JSON.parse(JSON.stringify(DEF));if(typeof ensureCostsCatalog==='function')ensureCostsCatalog(S);ERR={};DR={};save();renderAll()}
@@ -179,19 +233,23 @@ document.addEventListener('change',e=>{if(e.target.id=='rMode'){REPMODE=e.target
 /* ---------- التقرير ---------- */
 let REPMODE='full';
 function reportHtml(){const r=CALC(S),u=S.usd,T=S.net/1000,G=groups(r),pages=REPMODE=='full'?2:1;
- const head=t=>'<div class="ph"><div><h1>'+t+'</h1><div class="meta">تاريخ الحساب <span class="ltr">'+esc(D(S.date))+'</span> — '+esc(S.variety)+' — '+esc(r.pkgName)+' — الحاوية <span class="ltr">'+f(T,1)+'</span> طن صافي — الدولار <span class="ltr">'+f(S.usd)+'</span> ج — <span class="ltr">'+f(S.sar)+'</span> ريال</div></div><span class="tag">تكاليف الموالح</span></div>';
+ const mix=r.mix&&r.mix.rows, packLbl=mix?('خلطة: '+mix.map(x=>x.name+' ('+f(x.pct,0)+'%)').join(' + ')):r.pkgName;
+ const head=t=>'<div class="ph"><div><h1>'+t+'</h1><div class="meta">تاريخ الحساب <span class="ltr">'+esc(D(S.date))+'</span> — '+esc(S.variety)+' — '+esc(packLbl)+' — الحاوية <span class="ltr">'+f(T,1)+'</span> طن صافي — الدولار <span class="ltr">'+f(S.usd)+'</span> ج — <span class="ltr">'+f(S.sar)+'</span> ريال</div></div><span class="tag">تكاليف الموالح</span></div>';
  const code=REPMODE=='full'?'RT-20261028-010':'RT-20261028-011';const foot=p=>'<div class="pf"><span class="ltr">'+code+'</span><span>التكلفة للمنتج محمّلًا على الحاوية في المحطة، بدون نقل للميناء أو شحن. طُبع <span class="ltr">'+today()+'</span></span><span>صفحة '+p+' من '+pages+'</span></div>';
  const R6=(n,v,cls)=>'<tr'+(cls?' class="'+cls+'"':'')+'><td>'+esc(n)+'</td><td class="n">'+f(v)+'</td><td class="n">'+f(v/u)+'</td><td class="n">'+f(v*T)+'</td><td class="n">'+f(v*T/u)+'</td><td class="n">'+f(v/r.ton*100,1)+'%</td></tr>';
  const p1='<div class="page"><div class="pc p1">'+head('تكلفة طن '+esc(S.variety)+' الصافي ظهر الحاوية')+
  '<h3>الملخص</h3><div class="rsum"><div class="m main"><span>تكلفة الطن الصافي</span><b>'+f(r.ton)+' ج</b><em>$'+f(r.ton/u)+'</em><small>الخام + العبوة + المستلزمات + الغسيل ÷ الطن الصافي</small></div>'+
  '<div class="m"><span>الكيلو</span><b>'+f(r.kg)+' ج</b><em>$'+f(r.kg/u,3)+'</em><small>تكلفة الطن ÷ 1000 كجم</small></div>'+
- '<div class="m"><span>العبوة معبأة ('+f(r.pkgW,1)+' ك)</span><b>'+f(r.perPkg)+' ج</b><em>$'+f(r.perPkg/u)+'</em><small>الكيلو × '+f(r.pkgW,1)+' كجم</small></div>'+
+ (mix?'':('<div class="m"><span>العبوة معبأة ('+f(r.pkgW,1)+' ك)</span><b>'+f(r.perPkg)+' ج</b><em>$'+f(r.perPkg/u)+'</em><small>الكيلو × '+f(r.pkgW,1)+' كجم</small></div>'))+
  '<div class="m"><span>الحاوية ('+f(T,1)+' طن)</span><b>'+f(r.cont)+' ج</b><em>$'+f(r.cont/u)+'</em><small>الطن × '+f(T,1)+' طن صافي</small></div></div>'+
- '<div class="rsar"><span>تكلفة الكرتونة بالريال أرض المحطة</span><b>'+f(r.perPkg/u*S.sar)+' ريال</b><span class="sep">|</span><b>'+f(r.ton/u*S.sar)+' ريال / طن</b><em>= تكلفة العبوة ($'+f(r.perPkg/u,3)+') × '+f(S.sar)+' ريال للدولار</em></div>'+
+ (mix?('<h3>خلطة العبوات في الحاوية</h3><table class="rt"><thead><tr><th>العبوة</th><th>باليت</th><th>صافي طن</th><th>%</th><th>ج / طن</th><th>$ / طن</th></tr></thead><tbody>'+
+  mix.map(x=>'<tr><td>'+esc(x.name)+'</td><td class="n">'+f(x.pal,0)+'</td><td class="n">'+f(x.net/1000,2)+'</td><td class="n">'+f(x.pct,1)+'%</td><td class="n">'+f(x.ton)+'</td><td class="n">'+f(x.ton/u)+'</td></tr>').join('')+
+  '<tr class="gt"><td>الإجمالي المرجّح</td><td class="n">'+f(r.mix.totPal,0)+'</td><td class="n">'+f(r.mix.totNet/1000,2)+'</td><td class="n">100%</td><td class="n">'+f(r.ton)+'</td><td class="n">'+f(r.ton/u)+'</td></tr></tbody></table><div class="note">الحصّة بعدد باليتات كل عبوة (صناديق الباليت × وزن العبوة). الإجمالي مرجّح حسب الصافي، وده الرقم المستخدم في الملخص والقرار.</div>'):
+  ('<div class="rsar"><span>تكلفة الكرتونة بالريال أرض المحطة</span><b>'+f(r.perPkg/u*S.sar)+' ريال</b><span class="sep">|</span><b>'+f(r.ton/u*S.sar)+' ريال / طن</b><em>= تكلفة العبوة ($'+f(r.perPkg/u,3)+') × '+f(S.sar)+' ريال للدولار</em></div>'))+
  '<h3>المجمل</h3><table class="rt"><thead><tr><th>المجموعة</th><th>ج / طن</th><th>$ / طن</th><th>ج / حاوية</th><th>$ / حاوية</th><th>%</th></tr></thead><tbody>'+
  G.map(g=>R6(g[0],g[1])).join('')+R6('الإجمالي',r.ton,'gt')+'</tbody></table><div class="note">الأربع مجموعات مجموعها = تكلفة الطن الصافي ظهر الحاوية.</div>'+
  '<h3>مقارنة العبوات — تكلفة الطن الصافي</h3><table class="rt"><thead><tr><th>العبوة</th><th>ج / طن</th><th>$ / طن</th><th>ريال / عبوة</th><th>الفرق عن الأرخص $</th></tr></thead><tbody>'+
- r.cmp.map((x,i)=>'<tr'+(x.n==r.pkgName?' class="sel"':'')+'><td>'+esc(x.n)+'</td><td class="n">'+f(x.v)+'</td><td class="n">'+f(x.v/u)+'</td><td class="n">'+f(x.v/1000*S.pk[i][2]/u*S.sar)+'</td><td class="n">'+(x.d<1e-9?'الأرخص':'+'+f(x.d))+'</td></tr>').join('')+
+ r.cmp.map((x,i)=>'<tr'+((mix?mix.some(z=>z.name===x.n):x.n==r.pkgName)?' class="sel"':'')+'><td>'+esc(x.n)+'</td><td class="n">'+f(x.v)+'</td><td class="n">'+f(x.v/u)+'</td><td class="n">'+f(x.v/1000*S.pk[i][2]/u*S.sar)+'</td><td class="n">'+(x.d<1e-9?'الأرخص':'+'+f(x.d))+'</td></tr>').join('')+
  '</tbody></table><div class="note">الفرق محسوب بالدولار للطن مقارنة بأرخص عبوة؛ كل العبوات بنفس الخام والمستلزمات والغسيل.'+(pages>1?' التفاصيل في الصفحة التالية.':'')+'</div>'+(r.smC!=null?'<div class="note">يشمل محلي سوبرماركت'+(r.sm.m.sizes?' مقاسات '+esc(r.sm.m.sizes):'')+': '+f(r.sm.share*100,1)+'% من الفاكهة بعد الهالك في «'+esc(r.sm.name)+'» بسعر '+f(r.sm.price)+' '+SMB(r.sm.basis)+' — التصدير '+f(r.sm.split.exp*100,1)+'% من الخام. التفاصيل في الصفحة التالية.</div>':'')+'</div>'+foot(1)+'</div>';
  if(pages==1)return [p1];
  let d='';rows(r).forEach(x=>{if(x[0]=='g')d+='<tr class="gh"><td colspan="6">'+esc(x[1])+'</td></tr>';else{const s=x[0]=='s';d+=R6(s?x[1]:x[0],s?x[2]:x[1],s?'st':'')}});
@@ -199,7 +257,7 @@ function reportHtml(){const r=CALC(S),u=S.usd,T=S.net/1000,G=groups(r),pages=REP
  '<h3>التفاصيل</h3><table class="rt"><thead><tr><th>البند</th><th>ج / طن</th><th>$ / طن</th><th>ج / حاوية</th><th>$ / حاوية</th><th>%</th></tr></thead><tbody>'+d+
  '<tr class="gt"><td>إجمالي تكلفة الطن الصافي</td><td class="n">'+f(r.ton)+'</td><td class="n">'+f(r.ton/u)+'</td><td class="n">'+f(r.cont)+'</td><td class="n">'+f(r.cont/u)+'</td><td class="n">100%</td></tr></tbody></table>'+
  '<div class="note">الإجمالي = الخام + العبوة + المستلزمات + غسيل المحطة، لكل طن صافي داخل العبوات؛ الحاوية = الطن × '+f(T,1)+' طن.</div>'+
- '<h3>الكميات للحاوية</h3><table class="rt q"><tbody><tr><td>الصافي في العبوات</td><td class="q2"><span class="ltr">'+f(S.net,0)+'</span> كجم</td><td>الخام المطلوب</td><td class="q2"><span class="ltr">'+f(r.rawNeed)+'</span> كجم</td></tr><tr><td>الهالك</td><td class="q2"><span class="ltr">'+f(r.lossKg)+'</span> كجم</td><td>الفرزة للمحلي</td><td class="q2"><span class="ltr">'+f(r.cullKg)+'</span> كجم</td></tr><tr><td>قيمة بيع الفرزة</td><td class="q2"><span class="ltr">'+f(r.cullSale)+'</span> ج</td><td>وزن العبوة</td><td class="q2"><span class="ltr">'+f(r.pkgW,1)+'</span> كجم</td></tr><tr><td>العبوات المعبأة</td><td class="q2"><span class="ltr">'+f(r.packed,0)+'</span></td><td>العبوات المطلوب شراؤها</td><td class="q2"><span class="ltr">'+f(r.bought,0)+'</span></td></tr></tbody></table>'+
+ '<h3>الكميات للحاوية</h3><table class="rt q"><tbody><tr><td>الصافي في العبوات</td><td class="q2"><span class="ltr">'+f(S.net,0)+'</span> كجم</td><td>الخام المطلوب</td><td class="q2"><span class="ltr">'+f(r.rawNeed)+'</span> كجم</td></tr><tr><td>الهالك</td><td class="q2"><span class="ltr">'+f(r.lossKg)+'</span> كجم</td><td>الفرزة للمحلي</td><td class="q2"><span class="ltr">'+f(r.cullKg)+'</span> كجم</td></tr><tr><td>قيمة بيع الفرزة</td><td class="q2"><span class="ltr">'+f(r.cullSale)+'</span> ج</td><td>'+(mix?'صافي الخلطة':'وزن العبوة')+'</td><td class="q2"><span class="ltr">'+(mix?f(r.mix.totNet/1000,2)+'</span> طن':f(r.pkgW,1)+'</span> كجم')+'</td></tr><tr><td>العبوات المعبأة</td><td class="q2"><span class="ltr">'+f(r.packed,0)+'</span></td><td>العبوات المطلوب شراؤها</td><td class="q2"><span class="ltr">'+f(r.bought,0)+'</span></td></tr></tbody></table>'+
  smRep(r,T)+'<div class="note">العبوات المعبأة = الصافي ÷ وزن العبوة مقرّب لأعلى؛ المشتراة = المعبأة × (1 + <span class="ltr">'+f(S.pw*100,1)+'%</span>) مقرّب لأعلى.</div>'+
  '<h3>طريقة الحساب</h3><ul><li>الخام المطلوب = الصافي ÷ ((1 − الهالك <span class="ltr">'+f(S.loss*100,1)+'%</span>) × (1 − الفرزة <span class="ltr">'+f(S.cull*100,1)+'%</span>'+(r.smC!=null?' − السوبرماركت <span class="ltr">'+f(r.sm.share*100,1)+'%</span>':'')+')).</li><li>تكلفة الفرزة = وزنها × (سعر الخام '+f(S.raw)+' − سعر بيعها '+f(S.cullP)+').</li>'+(r.smC!=null?'<li>محلي سوبرماركت = '+f(r.sm.share*100,1)+'% من الفاكهة بعد الهالك (مخرج لوحده، الفرزة زي ما هي)؛ إيراده = '+(r.sm.basis==='box'?'عدد الصناديق × سعر الصندوق':'الوزن القائم (فاكهة + وزن الصندوق) × السعر')+'؛ تكلفته = خامه بسعر الخام − (إيراده − الصناديق والمصاريف).</li>':'')+'<li>سعر الخام واصل المحطة، فلا يوجد بند نقل خام.</li><li>التكلفة للمنتج محمّلًا على الحاوية في المحطة، بدون نقل للميناء أو شحن.</li></ul></div>'+foot(2)+'</div>';
  return [p1,p2]}

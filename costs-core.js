@@ -73,9 +73,47 @@ function calcX(s){const x=smOf(s);if(!x.on){const r=calc(s);r.sm=x;return r}
   ensureCostsCatalog بيلزّقهم في القايمة المحفوظة لو الاسم مش موجود، من غير ما يغيّر أسعار أو أوزان العبوات القديمة. */
 var EXTRA_PK=[['صندوق بلاستيك 5 ك ملوّن',13,5,200],['صندوق بلاستيك 2.5 ك ملوّن',11,2.5,400]];
 var EXTRA_VAR=[['أفندي',1800]];
+/* وزن الصندوق الفاضي لأنواع السوبرماركت الجديدة مش معروف — بيتسجل 0 وقابل للتعديل، من غير اختراع رقم. */
+function ensureSmBoxes(s){if(!s||typeof s!=='object')return false;var ch=false;
+ if(!s.sm||typeof s.sm!=='object'){s.sm=JSON.parse(JSON.stringify(SM_DEF));ch=true}
+ if(!Array.isArray(s.sm.bx)||!s.sm.bx.length){s.sm.bx=JSON.parse(JSON.stringify(SM_DEF.bx));ch=true}
+ function has(nm){return s.sm.bx.some(function(b){return b&&b[0]===nm})}
+ EXTRA_PK.forEach(function(p){if(!has(p[0])){s.sm.bx.push([p[0],p[1],p[2],0]);ch=true}});
+ if(Array.isArray(s.pk))s.pk.forEach(function(p){if(p&&p[0]&&String(p[0]).indexOf('صندوق')>=0&&!has(p[0])&&!DEF.pk.some(function(o){return o[0]===p[0]})){s.sm.bx.push([p[0],+p[1]||0,+p[2]||0,0]);ch=true}});
+ return ch}
 function ensureCostsCatalog(s){if(!s||typeof s!=='object')return false;var ch=false;
  if(Array.isArray(s.pk))EXTRA_PK.forEach(function(p){if(!s.pk.some(function(x){return x&&x[0]===p[0]})){s.pk.push(p.slice());ch=true}});
  if(Array.isArray(s.var)&&!s.var.some(function(v){return v&&v[0]==='أفندي'})){s.var.push(['أفندي',1800]);ch=true}
+ if(ensureSmBoxes(s))ch=true;
  return ch}
-var CORE={DEF:DEF,calc:calc,calcX:calcX,smOf:smOf,smState:smState,SM_DEF:SM_DEF,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore,ensureCostsCatalog:ensureCostsCatalog,EXTRA_PK:EXTRA_PK,EXTRA_VAR:EXTRA_VAR};
+/* صافي كجم في الباليت = وزن العبوة × عدد الصناديق في الباليت (لو الاتنين موجودين). */
+function palNetKg(p){var w=+p[2]||0,b=+p[3]||0;return w>0&&b>0?w*b:0}
+/* حصص الخلطة: [{i, pal, net}] صافي كجم. لو عبوة واحدة أو مفيش mix نرجّع null — الحساب يبقى calc/calcX حرفياً. */
+function mixList(s){if(!s||!Array.isArray(s.pk))return null;var m=s.mix;if(!Array.isArray(m)||m.length<2)return null;
+ var out=[];m.forEach(function(row){var i=Math.floor(+row.i);if(!(i>=0&&i<s.pk.length))return;var p=s.pk[i];if(!p||!(+p[2]>0))return;
+  var pn=palNetKg(p),pal=+row.pal,net=+row.net;if(!(pal>=0))pal=0;if(!(net>0))net=pn>0&&pal>0?pal*pn:0;out.push({i:i,pal:pal,net:net,p:p})});
+ return out.length>=2?out:null}
+function defaultMix(s,idxs){var n=idxs.length,Tkg=+s.net||0,each=n?Tkg/n:0,used=0,rows=[];
+ idxs.forEach(function(i,k){var p=s.pk[i],pn=palNetKg(p),rest=k===n-1?Math.max(0,Tkg-used):each,pal=0,net=rest;
+  if(pn>0){pal=k===n-1?Math.round(rest/pn):Math.round(each/pn);if(pal<0)pal=0;net=pal*pn}
+  if(k!==n-1)used+=net;rows.push({i:i,pal:pal,net:net})});
+ if(rows.length&&palNetKg(s.pk[rows[rows.length-1].i])>0){var last=rows[rows.length-1],pn=palNetKg(s.pk[last.i]),sum=rows.reduce(function(a,r,j){return j===rows.length-1?a:a+r.net},0),need=Tkg-sum;
+  last.pal=pn>0?Math.max(0,Math.round(need/pn)):last.pal;last.net=last.pal*pn}
+ return rows}
+function packSlice(s,p,netKg){var T=netKg/1000,packed=Math.ceil(netKg/p[2]),bought=Math.ceil(packed*(1+s.pw));return{packed:packed,bought:bought,pkgC:T>0?bought*p[1]/T:0,pkgW:p[2],pkgName:p[0]}}
+/* خلطة عبوات على نفس الصنف: تكلفة كل عبوة لصافي حصتها، والإجمالي مرجّح. عبوة واحدة = calcX بالظبط. calc() نفسها ما اتلمستش. */
+function calcMix(s){var r=(typeof calcX==='function'?calcX:calc)(s),mix=mixList(s);
+ if(!mix){r.mix=null;return r}
+ var T=s.net/1000,rows=[],totNet=0,totCost=0,totPacked=0,totBought=0;
+ mix.forEach(function(row){var q=packSlice(s,row.p,row.net),ton=r.rawT+q.pkgC+r.supT+r.wash;
+  totNet+=row.net;totCost+=q.pkgC*(row.net/1000);totPacked+=q.packed;totBought+=q.bought;
+  rows.push({i:row.i,name:row.p[0],w:row.p[2],price:row.p[1],pal:row.pal,net:row.net,pct:0,packed:q.packed,bought:q.bought,pkgC:q.pkgC,ton:ton,kg:ton/1000,perPkg:ton/1000*row.p[2],cont:ton*(row.net/1000)})});
+ var wsum=totNet>0?totNet:1;rows.forEach(function(x){x.pct=x.net/wsum*100});
+ var pkgC=T>0?totCost/T:0;
+ r.pkgC=pkgC;r.packed=totPacked;r.bought=totBought;r.pkgW=null;
+ r.pkgName=rows.map(function(x){return x.name}).join(' + ');
+ r.ton=r.rawT+r.pkgC+r.supT+r.wash;r.kg=r.ton/1000;r.perPkg=null;r.cont=r.ton*T;
+ r.mix={rows:rows,totNet:totNet,totPal:rows.reduce(function(a,x){return a+(+x.pal||0)},0),pkgC:pkgC};
+ return r}
+var CORE={DEF:DEF,calc:calc,calcX:calcX,calcMix:calcMix,mixList:mixList,defaultMix:defaultMix,palNetKg:palNetKg,packSlice:packSlice,smOf:smOf,smState:smState,SM_DEF:SM_DEF,_ld:_ld,f:f,parseNum:parseNum,RULES:RULES,checkVal:checkVal,toStore:toStore,ensureCostsCatalog:ensureCostsCatalog,ensureSmBoxes:ensureSmBoxes,EXTRA_PK:EXTRA_PK,EXTRA_VAR:EXTRA_VAR};
 if(typeof module!=='undefined')module.exports=CORE;
