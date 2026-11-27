@@ -94,6 +94,13 @@ function mixList(s){if(!s||!Array.isArray(s.pk))return null;var m=s.mix;if(!Arra
   var pn=palNetKg(p),pal=+row.pal,net=+row.net;if(!(pal>=0))pal=0;if(!(net>0))net=pn>0&&pal>0?pal*pn:0;out.push({i:i,pal:pal,net:net,p:p})});
  return out.length>=2?out:null}
 function defaultMix(s,idxs){var n=idxs.length,Tkg=+s.net||0,each=n?Tkg/n:0,used=0,rows=[];
+ /* v2.3.1 (مراجعة t198): لو في الخلطة عبوة من غير «صناديق/باليت» هي اللي بتاخد الباقي، عشان الموزّع = صافي الحاوية بالظبط
+    (قبل كده العبوة الأخيرة بالباليتات كانت بتتقرّب لأقرب باليت فالموزّع يزيد/يقل عن الحاوية). */
+ var free=idxs.filter(function(i){return !(palNetKg(s.pk[i])>0)});
+ if(free.length&&free.length<n){var palUsed=0;
+  idxs.forEach(function(i){var pn=palNetKg(s.pk[i]);if(pn>0){var pal=Math.max(0,Math.round(each/pn));palUsed+=pal*pn;rows.push({i:i,pal:pal,net:pal*pn})}else rows.push({i:i,pal:0,net:0})});
+  var rest=Math.max(0,Tkg-palUsed),k=0;rows.forEach(function(r){if(!(palNetKg(s.pk[r.i])>0)){k++;r.net=k===free.length?Math.max(0,rest-(rest/free.length)*(free.length-1)):rest/free.length}});
+  return rows}
  idxs.forEach(function(i,k){var p=s.pk[i],pn=palNetKg(p),rest=k===n-1?Math.max(0,Tkg-used):each,pal=0,net=rest;
   if(pn>0){pal=k===n-1?Math.round(rest/pn):Math.round(each/pn);if(pal<0)pal=0;net=pal*pn}
   if(k!==n-1)used+=net;rows.push({i:i,pal:pal,net:net})});
@@ -109,7 +116,9 @@ function calcMix(s){var r=(typeof calcX==='function'?calcX:calc)(s),mix=mixList(
   totNet+=row.net;totCost+=q.pkgC*(row.net/1000);totPacked+=q.packed;totBought+=q.bought;
   rows.push({i:row.i,name:row.p[0],w:row.p[2],price:row.p[1],pal:row.pal,net:row.net,pct:0,packed:q.packed,bought:q.bought,pkgC:q.pkgC,ton:ton,kg:ton/1000,perPkg:ton/1000*row.p[2],cont:ton*(row.net/1000)})});
  var wsum=totNet>0?totNet:1;rows.forEach(function(x){x.pct=x.net/wsum*100});
- var pkgC=T>0?totCost/T:0;
+ /* v2.3.1 (مراجعة t198): «الإجمالي المرجّح» = تكلفة العبوات ÷ الصافي الموزّع فعلاً، فبيساوي متوسط سطور الخلطة المرجّح بالصافي
+    حتى لو الموزّع مختلف عن صافي الحاوية (قبل كده كان بيقسم على صافي الحاوية فالإجمالي يطلع غير متوسط السطور). */
+ var pkgC=totNet>0?totCost/(totNet/1000):0;
  r.pkgC=pkgC;r.packed=totPacked;r.bought=totBought;r.pkgW=null;
  r.pkgName=rows.map(function(x){return x.name}).join(' + ');
  r.ton=r.rawT+r.pkgC+r.supT+r.wash;r.kg=r.ton/1000;r.perPkg=null;r.cont=r.ton*T;
