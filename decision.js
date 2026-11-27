@@ -80,7 +80,7 @@ function render(){load();renderInputs();const R=DEC;
   '<div class="hint be-how">الحساب: صافي الطن = سعر الكرتونة × (1 − العمولة) × عدد الكراتين في الطن ÷ ريال/$ × ج/$ − نصيب الطن من مصروفات ونولون الشحنة (نفس الصوافي). '+
   'سعر الخام للتعادل = (صافي الطن − العبوات − المستلزمات − الغسيل + الفرزة المباعة محلي) ÷ الكيلوهات الخام اللي بتطلع طن صافي (نفس التكاليف). أحسن توزيع = أعلى سعر خام ممكن (Dinkelbach + Simplex).</div>';
  document.querySelectorAll('select[data-hs]').forEach(s=>{const v=get(s.dataset.hs);s.value=v==null?'':String(v);if(s.value!==String(v==null?'':v))s.selectedIndex=0});
- $('#ver').textContent='· v'+VER2;showSaved();live()}
+ $('#ver').textContent='· v2.5.0';showSaved();live()}
 function get(path){const a=path.split('.');let o=DEC;for(const k of a){if(o==null)return null;o=o[k]}return o}
 function set(path,v){const a=path.split('.');let o=DEC;for(let i=0;i<a.length-1;i++)o=o[a[i]];o[a[a.length-1]]=v}
 function planFor(mode){if(typeof BE.planN==='function')return BE.planN(DEC,mode);const n=DEC.items.map(it=>+it.pal||0);if(mode===DEC.base)return n;const tot=n.reduce((a,b)=>a+b,0),cap=+DEC.cap[mode]||0;return tot?n.map(v=>v*cap/tot):n}

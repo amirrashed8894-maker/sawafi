@@ -1,5 +1,5 @@
 /* تكاليف الموالح — الواجهة والتقرير (v2.2.0: + محلي سوبرماركت بدل جزء من الفرزة، calcX في costs-core.js). الحساب كله من calc() الأصلية في core.js */
-const VER='2.4.0';
+const VER='2.5.0';
 /* calcX = calc الأصلية + فرق السوبرماركت (لو النسبة صفر = calc بالظبط). لو ملف قديم في الكاش من غير calcX، نرجع لـ calc */
 const CALC=typeof calcMix==='function'?calcMix:(typeof calcX==='function'?calcX:calc);const SMON=()=>typeof smState==='function';
 /* تحميل البيانات المحفوظة — نفس مفتاح وشكل وتحويل البرنامج الأصلي (منسوخ حرفيًا) */

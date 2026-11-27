@@ -296,6 +296,31 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 .sc-t td small{display:inline;font-size:11px;color:inherit;opacity:.7}.sc-c tr.s td{font-weight:800;border-top:1.5px solid #999}
 @media (max-width:420px){.sc-t td,.sc-c td{font-size:13px;padding:5px 2px}}
 @media print{.two,#two,#costsDec{display:none!important}}
+/* v2.5.0 ④–⑦ اسأل القرار · الاحتمالات · الحساسية · كل الأصناف */
+.mx h2.mx-h2{margin-top:18px;border-top:1px solid var(--line,#e3e3e3);padding-top:14px}
+.mx-pick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px;margin-bottom:8px}.mx-pick.two{align-items:end}
+.mx-f{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--ink2,#444);font-weight:700;min-width:0}.mx-f small{font-weight:500;color:var(--mut,#777)}
+.mx-f select,.mx-f input,.mx-ri input,.mx-ov input,.mx-tg input{font:inherit;font-size:16px;padding:8px;border:1.5px solid #d6d6d6;border-radius:10px;width:100%;box-sizing:border-box;background:#fff;color:#111;min-width:0}
+.mxin{text-align:center;direction:ltr;font-weight:800}.mxin.big{font-size:20px}.mxin.auto{background:#f3f3f2}.mxin.bad{border-color:#b00;background:#fff3f3}
+.mx-tg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 10px;font-size:13px;font-weight:700;color:var(--mut,#777)}.mx-tg input{width:110px}
+.mx-ch{display:flex;gap:6px}
+.mx-rev{margin-top:8px;font-size:14px;line-height:1.6;background:#fff;border:1px solid var(--line,#e3e3e3);border-radius:12px;padding:8px 10px}.mx-rev.sm{font-size:13px;background:transparent;border:0;padding:4px 0}
+.mx-k{grid-template-columns:1fr 1fr}.mx-k .kpi b{font-size:19px}
+.mx-pt td,.mx-sn td,.mx-ov td{font-size:13.5px}.mx-pt tr.cur td{background:#111;color:#fff;font-weight:900}.mx-pt tr.neg td{color:#991b1b}.mx-pt tr.cur.neg td{color:#fca5a5}.mx-pt td small{display:inline;color:inherit;opacity:.75}
+.mx-bar{display:inline-block;width:56px;height:8px;background:#e3e3e3;border-radius:4px;margin-inline-end:6px;vertical-align:middle;overflow:hidden}.mx-bar i{display:block;height:100%;background:#111}
+.mx-tor{display:flex;height:6px;margin-top:4px;background:#f0f0ef;border-radius:3px;overflow:hidden;direction:ltr;justify-content:center}.mx-tor i{display:block;height:100%}.mx-tor i.dn{margin-left:auto}.mx-tor i.up{margin-right:auto}
+.mx-ov td.vh{text-align:center}.mx-ov input.raw{width:78px;padding:6px}.mx-ov td small{display:block;font-size:11.5px}.mx-ov td b{font-size:16px}.mx-ov em{font-style:normal;font-size:12px;font-weight:800;display:block}
+.mx .ok2,.mx-ov .ok2,.mx-ro .ok2{color:#166534}.mx .bad2,.mx-ro .bad2{color:#991b1b}
+.mx-vars{margin-top:10px}
+.mx-row{border:1px solid var(--line,#e3e3e3);border-radius:12px;padding:10px;margin-bottom:8px;background:#fff}
+.mx-rh{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px}.mx-rh b{font-size:15px}
+.mx-ri{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mx-ri label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut,#777);font-weight:700}
+.mx-ro{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;text-align:center}.mx-ro>div{background:var(--soft,#f0f0ef);border-radius:10px;padding:6px 4px}.mx-ro>div>span{display:block;font-size:11.5px;color:var(--mut,#777);font-weight:700}.mx-ro>div>b{display:block;font-size:17px;font-weight:900;color:#111}
+.mx-ro>em{grid-column:1/-1;font-style:normal;font-size:12.5px;font-weight:800}.mx-ro .sm2{grid-column:1/-1;color:var(--mut,#777);font-size:13px}
+.mx .hint{font-size:12.5px;line-height:1.55;color:var(--mut,#777);margin-top:6px}
+.mx-more{margin-top:6px}.mx-more>summary{cursor:pointer;font-weight:800;font-size:14px;padding:8px 2px;color:var(--ink2,#444)}
+.mx-tor i.neg{background:#991b1b}.mx-tor i.pos{background:#166534}
+@media print{.mx{display:none!important}}
 </style>
 </head>
 <body>
@@ -306,6 +331,8 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
  </header>
  <section class="card be-main-in" id="hin"></section>
  <section class="card two-card" id="two"><h2>القرار <small>سعر تعادل البيع وسعر تعادل شراء الخام</small></h2><div id="twoBody"></div></section>
+ <section class="card mx" id="mx"></section>
+ <section class="card mx" id="mxAll"></section>
  <div class="actions">
   <button class="btn pri" id="bDecReport">تقرير القرار</button>
   <button class="btn" id="bDecShare">PDF / واتساب</button>
@@ -330,11 +357,15 @@ body.invalid #bReport,body.invalid #bShare,body.invalid #bPrint{opacity:.45}
 <script src="sizes.js?v=2"></script>
 <script src="be-core.js?v=220"></script>
 <script src="be-two.js?v=220"></script>
-<script src="decision.js?v=220"></script>
+<script src="decision.js?v=250"></script>
+<script src="costs-calc.js?v=240"></script>
+<script src="safi-autocost.js?v=240"></script>
+<script src="be-mx.js?v=250"></script>
+<script src="decision-mx.js?v=250"></script>
 <script src="pdf-share.js"></script>
 <script src="decision-report.js?v=220"></script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=240').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=250').then(function(r){r.update&&r.update().catch(function(){});setInterval(function(){r.update().catch(function(){})},3600000)}).catch(function(){});var had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!window.__rl){window.__rl=1;location.reload()}})})}
 </script>
 </body>
 </html>
